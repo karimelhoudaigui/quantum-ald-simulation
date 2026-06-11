@@ -1,0 +1,31 @@
+{
+  "molecule": "h2",
+  "geometry": "data/geometries/h2.xyz",
+  "basis": "sto-3g",
+  "active_space": {
+    "num_electrons": 2,
+    "num_spatial_orbitals": 2
+  },
+  "n_spin_orbitals": 4,
+  "n_electrons": 2,
+  "basis_size": 6,
+  "fixed_particle_sector_dimension": 6,
+  "nuclear_repulsion_hartree": 0.7151043390810812,
+  "energies_hartree": {
+    "hf_total": -1.1167593073964255,
+    "fci_electronic": -1.852388173569583,
+    "fci_total": -1.137283834488502,
+    "diag_manybody_electronic": -1.8523881735695826,
+    "diag_manybody_total": -1.1372838344885015,
+    "vqe_fallback_electronic": -1.8523881735695522,
+    "vqe_fallback_total": -1.137283834488471
+  },
+  "gaps_hartree": {
+    "hf_total_minus_fci_total": 0.020524527092076417,
+    "diag_manybody_electronic_minus_fci_electronic": 4.440892098500626e-16,
+    "diag_manybody_total_minus_fci_total": 4.440892098500626e-16,
+    "vqe_total_minus_fci_total": 3.086420008457935e-14
+  },
+  "tolerance_hartree": 0.0001,
+  "diag_matches_fci": true
+}

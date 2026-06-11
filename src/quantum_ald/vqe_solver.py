@@ -84,3 +84,68 @@ class VQESolver:
         if parameters is None:
             return self.ansatz
         return self.ansatz.assign_parameters(parameters)
+
+
+class FallbackVQESolver:
+    """Simple pure-Python variational solver for very small systems.
+
+    This solver works directly with a dense many-body Hamiltonian matrix and
+    performs a classical variational optimization over a real parameter vector
+    that defines the trial state. For reliability it attempts an optimization
+    and falls back to exact diagonalization if needed.
+    """
+
+    def __init__(self, max_iter: int = 100, optimizer: str = "BFGS"):
+        self.max_iter = max_iter
+        self.history: dict[str, list[float]] = {"iterations": [], "energies": []}
+        self.optimizer = optimizer
+        self.result = None
+
+    def _energy(self, x: np.ndarray, H: np.ndarray) -> float:
+        if x.ndim != 1:
+            x = np.ravel(x)
+        norm = np.linalg.norm(x)
+        if norm == 0:
+            return float(np.inf)
+        psi = x / norm
+        e = float(np.real(psi.conj() @ (H @ psi)))
+        return e
+
+    def solve(self, H: np.ndarray) -> tuple[float, np.ndarray]:
+        n = H.shape[0]
+        # initial random vector biased to HF-like occupation (first basis state)
+        x0 = np.zeros(n)
+        x0[0] = 1.0
+
+        from scipy import optimize
+
+        def fun(x):
+            e = self._energy(x, H)
+            self.history["iterations"].append(len(self.history["iterations"]))
+            self.history["energies"].append(e)
+            return e
+
+        try:
+            res = optimize.minimize(fun, x0, method=self.optimizer, options={"maxiter": self.max_iter})
+            if res.success:
+                energy = self._energy(res.x, H)
+                self.result = res
+                params = res.x / np.linalg.norm(res.x)
+                return float(energy), params
+        except Exception:
+            pass
+
+        # Fallback: exact diagonalization
+        evals, evecs = np.linalg.eigh(H)
+        idx = int(np.argmin(evals))
+        energy = float(evals[idx])
+        params = np.asarray(evecs[:, idx], dtype=float)
+        params = params / np.linalg.norm(params)
+        self.result = {"eigenvalue": energy, "eigenvector": params}
+        # record fallback in history
+        self.history["iterations"].append(0)
+        self.history["energies"].append(energy)
+        return energy, params
+
+    def get_convergence_history(self) -> dict[str, list[float]]:
+        return self.history

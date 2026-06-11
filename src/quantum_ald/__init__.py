@@ -8,9 +8,16 @@ from .classical_methods import (
     run_casscf,
     run_dft,
     run_hartree_fock,
+    run_fci,
 )
 from .error_mitigation import CDR, ZNE
-from .hamiltonian_mapping import get_fermion_hamiltonian, map_to_qubit_hamiltonian
+from .hamiltonian_mapping import (
+    build_many_body_hamiltonian,
+    get_fermion_hamiltonian,
+    map_to_qubit_hamiltonian,
+    particle_number_basis,
+    restrict_to_particle_number,
+)
 from .molecule_loader import H2, H2O, LiH, Molecule, get_molecular_data, load_molecule, molecule_from_string
 from .noise_models import NoiseModel, carbon_nanotube_noise, simple_noise_model
 from .plotting import plot_comparison, plot_energy_profile, plot_vqe_convergence
@@ -35,6 +42,7 @@ __all__ = [
     "avas_selection",
     "carbon_nanotube_noise",
     "define_active_space",
+    "build_many_body_hamiltonian",
     "get_density_matrix",
     "get_fermion_hamiltonian",
     "get_fock_matrix",
@@ -43,11 +51,14 @@ __all__ = [
     "load_molecule",
     "map_to_qubit_hamiltonian",
     "molecule_from_string",
+    "particle_number_basis",
     "plot_comparison",
     "plot_energy_profile",
     "plot_vqe_convergence",
+    "restrict_to_particle_number",
     "run_casscf",
     "run_dft",
     "run_hartree_fock",
+    "run_fci",
     "simple_noise_model",
 ]

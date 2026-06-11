@@ -1,0 +1,8 @@
+{
+  "molecule": "H2",
+  "nuclear_repulsion_hartree": 0.7151043390810812,
+  "hf_total_energy": -1.1167593073964255,
+  "fci_electronic_energy": -1.852388173569583,
+  "fci_total_energy": -1.137283834488502,
+  "vqe_total_energy": -1.137283834488471
+}

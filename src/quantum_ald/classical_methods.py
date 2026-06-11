@@ -53,3 +53,17 @@ def get_density_matrix(mf: Any) -> np.ndarray:
 def get_fock_matrix(mf: Any) -> np.ndarray:
     """Return the Fock matrix."""
     return np.asarray(mf.get_fock())
+
+
+def run_fci(molecule: Molecule, mf: Any) -> tuple[Any, float]:
+    """Run a full configuration interaction (FCI) calculation for small systems.
+
+    Returns the FCI solver object and the FCI energy in Hartree.
+    This uses pyscf.fci which is suitable for very small molecules used
+    in unit tests (H2, LiH minimal basis).
+    """
+    fci = require_module("pyscf.fci", "chemistry")
+    cisolver = fci.FCI(molecule.mol, mf.mo_coeff)
+    e, _ = cisolver.kernel()
+    energy = float(e)
+    return cisolver, energy

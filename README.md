@@ -122,6 +122,26 @@ Run the VQE demonstration:
 python scripts/run_vqe.py
 ```
 
+Run the compact H2 VQE workflow (HF + FCI + optional VQE):
+
+```bash
+python scripts/run_h2_vqe.py
+```
+
+Validate the local H2 pipeline (HF + FCI + local many-body diagonalization +
+fallback VQE):
+
+```bash
+python scripts/validate_h2_pipeline.py
+```
+
+Note: the project provides a pure-Python fallback VQE (`FallbackVQESolver`) that
+is used when Qiskit/OpenFermion are not installed. This fallback builds a small
+many-body Hamiltonian in the occupation-number basis and performs a classical
+variational optimization (with exact diagonalization fallback). It is a
+pedagogical demonstration for very small systems (H2, LiH minimal bases) and
+not intended as a production quantum backend.
+
 Run tests:
 
 ```bash
@@ -140,6 +160,7 @@ results/figures/
 Example outputs include:
 
 - `results/tables/hf_energies.csv`
+- `results/h2_validation_summary.json`
 - `results/figures/energy_profile.png`
 - VQE convergence plots for future experiments.
 
@@ -151,6 +172,67 @@ Example outputs include:
 - Add noiseless and noisy VQE benchmark tables.
 - Add notebook execution in CI.
 - Add hardware-runtime examples with IBM Quantum backends.
+
+## Validation status
+
+Current validated items (as of this commit):
+
+- **HF / FCI on H2**: implemented and tested via PySCF (small STO-3G example).
+- **Diagonalization of many-body Hamiltonian**: `build_many_body_hamiltonian` constructs
+  a dense occupation-number Hamiltonian; its ground-state eigenvalue matches PySCF FCI for H2.
+- **Fallback VQE**: `FallbackVQESolver` performs a pure-Python variational solve
+  (with classical optimizer and exact-diagonalization fallback) for small systems.
+- **Jordan-Wigner mapping**: optional tests compare spectra with OpenFermion/Qiskit when available.
+
+Note: OpenFermion and Qiskit-related validations are optional and tests will be skipped
+if those packages are not installed. The fallback VQE is pedagogical and intended only
+for tiny demonstration systems (H2, LiH minimal bases), not as a production quantum backend.
+
+## For scientists & community
+
+This project is intended as a reproducible research scaffold for hybrid quantum‑classical
+experiments targeting simplified ALD reaction models. If you are a scientist or
+developer interested in collaborating, reproducing results, or discussing methods,
+please consider the following channels:
+
+- **Issues & PRs**: Use GitHub Issues and Pull Requests on the repository for bug
+  reports, feature requests and code contributions.
+- **Discussions**: Enable or use [GitHub Discussions](https://github.com/karimelhoudaigui/quantum-ald-simulation/discussions)
+  for conceptual questions, reproducibility threads, and methodological discussions.
+- **Qiskit / OpenFermion communities**: For algorithmic or runtime help, the
+  Qiskit community forum (https://discuss.qiskit.org) and OpenFermion channels are good
+  places to ask implementation-specific questions.
+- **Stack Exchange**: For focused theoretical questions, use Quantum Computing Stack Exchange
+  (https://quantumcomputing.stackexchange.com).
+
+Reproducing the H2 validation example
+
+1. Create a Python environment and install the minimal requirements:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev,chemistry]"
+```
+
+2. Reproduce the validated H2 pipeline (HF + FCI + many-body diag + fallback VQE):
+
+```bash
+python scripts/validate_h2_pipeline.py
+python scripts/run_h2_vqe.py
+```
+
+Notes
+
+- The `results/` directory contains example outputs for the H2 validation (JSON summary,
+  tabular results and a convergence figure). These are included as lightweight examples.
+- If you plan to run larger molecules or more realistic ALD fragments, prefer using
+  `qiskit-nature` / OpenFermion for robust fermion-to-qubit transformations and
+  avoid the naive many-body dense construction used here (it scales exponentially).
+
+If you want, we can enable GitHub Discussions in the repository and add a short
+CONTRIBUTING guide explaining how to open reproducible issues and attach environment
+information (OS, Python, package versions, and a minimal script to reproduce).
 
 ## References
 
