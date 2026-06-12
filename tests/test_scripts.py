@@ -19,9 +19,13 @@ def test_scripts_importable() -> None:
     validate = load_script(project / "scripts" / "validate_install.py")
     run_h2 = load_script(project / "scripts" / "run_h2_vqe.py")
     validate_h2 = load_script(project / "scripts" / "validate_h2_pipeline.py")
+    run_h2_curve = load_script(project / "scripts" / "run_h2_energy_curve.py")
+    validate_lih = load_script(project / "scripts" / "validate_lih_pipeline.py")
     assert hasattr(validate, "main")
     assert hasattr(run_h2, "main")
     assert hasattr(validate_h2, "main")
+    assert hasattr(run_h2_curve, "main")
+    assert hasattr(validate_lih, "main")
 
 
 def test_run_h2_vqe_smoke() -> None:

@@ -6,6 +6,7 @@ from .classical_methods import (
     get_fock_matrix,
     get_orbital_energies,
     run_casscf,
+    run_casci,
     run_dft,
     run_hartree_fock,
     run_fci,
@@ -13,6 +14,7 @@ from .classical_methods import (
 from .error_mitigation import CDR, ZNE
 from .hamiltonian_mapping import (
     build_many_body_hamiltonian,
+    build_many_body_hamiltonian_from_integrals,
     get_fermion_hamiltonian,
     map_to_qubit_hamiltonian,
     particle_number_basis,
@@ -43,6 +45,7 @@ __all__ = [
     "carbon_nanotube_noise",
     "define_active_space",
     "build_many_body_hamiltonian",
+    "build_many_body_hamiltonian_from_integrals",
     "get_density_matrix",
     "get_fermion_hamiltonian",
     "get_fock_matrix",
@@ -57,6 +60,7 @@ __all__ = [
     "plot_vqe_convergence",
     "restrict_to_particle_number",
     "run_casscf",
+    "run_casci",
     "run_dft",
     "run_hartree_fock",
     "run_fci",

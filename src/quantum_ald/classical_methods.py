@@ -40,6 +40,15 @@ def run_casscf(
     return mc, energy
 
 
+def run_casci(molecule: Molecule, mf: Any, n_electrons: int, n_orbitals: int) -> tuple[Any, float]:
+    """Run a fixed-orbital CASCI calculation from a mean-field reference."""
+    del molecule
+    mcscf = require_module("pyscf.mcscf", "chemistry")
+    mc = mcscf.CASCI(mf, n_orbitals, n_electrons)
+    energy = float(mc.kernel()[0])
+    return mc, energy
+
+
 def get_orbital_energies(mf: Any) -> np.ndarray:
     """Return molecular orbital energies."""
     return np.asarray(mf.mo_energy)

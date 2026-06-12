@@ -1,0 +1,98 @@
+[
+  {
+    "distance_angstrom": 0.3,
+    "nuclear_repulsion_hartree": 1.7639240364000002,
+    "sector_dimension": 6,
+    "hf_total_hartree": -0.5938277585357272,
+    "fci_total_hartree": -0.6018037107656871,
+    "local_diag_total_hartree": -0.6018037107656862,
+    "fallback_vqe_total_hartree": -0.6018037107655978,
+    "diag_minus_fci_hartree": 8.881784197001252e-16,
+    "vqe_minus_fci_hartree": 8.926193117986259e-14,
+    "vqe_status": "ok"
+  },
+  {
+    "distance_angstrom": 0.5,
+    "nuclear_repulsion_hartree": 1.05835442184,
+    "sector_dimension": 6,
+    "hf_total_hartree": -1.0429962745400945,
+    "fci_total_hartree": -1.0551597944706248,
+    "local_diag_total_hartree": -1.0551597944706244,
+    "fallback_vqe_total_hartree": -1.0551597944705626,
+    "diag_minus_fci_hartree": 4.440892098500626e-16,
+    "vqe_minus_fci_hartree": 6.217248937900877e-14,
+    "vqe_status": "ok"
+  },
+  {
+    "distance_angstrom": 0.7,
+    "nuclear_repulsion_hartree": 0.7559674441714287,
+    "sector_dimension": 6,
+    "hf_total_hartree": -1.11734903499028,
+    "fci_total_hartree": -1.136189454065923,
+    "local_diag_total_hartree": -1.1361894540659225,
+    "fallback_vqe_total_hartree": -1.1361894540658786,
+    "diag_minus_fci_hartree": 4.440892098500626e-16,
+    "vqe_minus_fci_hartree": 4.440892098500626e-14,
+    "vqe_status": "ok"
+  },
+  {
+    "distance_angstrom": 0.735,
+    "nuclear_repulsion_hartree": 0.7199689944489797,
+    "sector_dimension": 6,
+    "hf_total_hartree": -1.1169989967540044,
+    "fci_total_hartree": -1.1373060357534004,
+    "local_diag_total_hartree": -1.1373060357533995,
+    "fallback_vqe_total_hartree": -1.137306035753368,
+    "diag_minus_fci_hartree": 8.881784197001252e-16,
+    "vqe_minus_fci_hartree": 3.241851231905457e-14,
+    "vqe_status": "ok"
+  },
+  {
+    "distance_angstrom": 1.0,
+    "nuclear_repulsion_hartree": 0.52917721092,
+    "sector_dimension": 6,
+    "hf_total_hartree": -1.0661086493179361,
+    "fci_total_hartree": -1.1011503302326187,
+    "local_diag_total_hartree": -1.101150330232619,
+    "fallback_vqe_total_hartree": -1.1011503302326187,
+    "diag_minus_fci_hartree": -4.440892098500626e-16,
+    "vqe_minus_fci_hartree": 0.0,
+    "vqe_status": "ok"
+  },
+  {
+    "distance_angstrom": 1.5,
+    "nuclear_repulsion_hartree": 0.35278480728,
+    "sector_dimension": 6,
+    "hf_total_hartree": -0.9108735545943865,
+    "fci_total_hartree": -0.9981493534714099,
+    "local_diag_total_hartree": -0.9981493534714101,
+    "fallback_vqe_total_hartree": -0.9981493534651547,
+    "diag_minus_fci_hartree": -2.220446049250313e-16,
+    "vqe_minus_fci_hartree": 6.255218565343057e-12,
+    "vqe_status": "ok"
+  },
+  {
+    "distance_angstrom": 2.0,
+    "nuclear_repulsion_hartree": 0.26458860546,
+    "sector_dimension": 6,
+    "hf_total_hartree": -0.7837926542773535,
+    "fci_total_hartree": -0.9486411121761857,
+    "local_diag_total_hartree": -0.948641112176186,
+    "fallback_vqe_total_hartree": -0.9486411121761844,
+    "diag_minus_fci_hartree": -2.220446049250313e-16,
+    "vqe_minus_fci_hartree": 1.3322676295501878e-15,
+    "vqe_status": "ok"
+  },
+  {
+    "distance_angstrom": 2.5,
+    "nuclear_repulsion_hartree": 0.21167088436800002,
+    "sector_dimension": 6,
+    "hf_total_hartree": -0.7029435997235269,
+    "fci_total_hartree": -0.9360549199556059,
+    "local_diag_total_hartree": -0.9360549199556061,
+    "fallback_vqe_total_hartree": -0.9360549199556054,
+    "diag_minus_fci_hartree": -2.220446049250313e-16,
+    "vqe_minus_fci_hartree": 4.440892098500626e-16,
+    "vqe_status": "ok"
+  }
+]

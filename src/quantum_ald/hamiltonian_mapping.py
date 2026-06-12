@@ -193,6 +193,109 @@ def build_many_body_hamiltonian(
     return H, basis
 
 
+def build_many_body_hamiltonian_from_integrals(
+    h1_spatial: np.ndarray,
+    eri_spatial: np.ndarray,
+    n_electrons: int,
+) -> Tuple[np.ndarray, List[int]]:
+    """Build a fixed-electron Hamiltonian from spatial-orbital integrals.
+
+    ``eri_spatial`` is expected in PySCF/chemist notation ``(p q | r s)``.
+    Constant energy shifts, such as CASCI core energy, should be added by the
+    caller after diagonalization.
+    """
+    h1_spatial = np.asarray(h1_spatial)
+    eri_spatial = np.asarray(eri_spatial)
+    n_spatial = int(h1_spatial.shape[0])
+    n_spin = 2 * n_spatial
+
+    h1_spin = np.zeros((n_spin, n_spin))
+    for p in range(n_spatial):
+        for q in range(n_spatial):
+            for spin in (0, 1):
+                h1_spin[2 * p + spin, 2 * q + spin] = h1_spatial[p, q]
+
+    eri_spin = np.zeros((n_spin, n_spin, n_spin, n_spin))
+    for p in range(n_spatial):
+        for q in range(n_spatial):
+            for r in range(n_spatial):
+                for s in range(n_spatial):
+                    val = eri_spatial[p, r, q, s]
+                    for spin_p in (0, 1):
+                        for spin_q in (0, 1):
+                            P = 2 * p + spin_p
+                            Q = 2 * q + spin_q
+                            R = 2 * r + spin_p
+                            S = 2 * s + spin_q
+                            eri_spin[P, Q, R, S] = val
+
+    basis = particle_number_basis(n_spin, int(n_electrons))
+    H = np.zeros((len(basis), len(basis)))
+
+    def apply_annihilate(state: int, q: int):
+        if (state >> q) & 1 == 0:
+            return None
+        mask = (1 << q) - 1
+        sign = (-1) ** _count_occupied_orbitals(state & mask)
+        return state & ~(1 << q), sign
+
+    def apply_create(state: int, p: int):
+        if (state >> p) & 1 == 1:
+            return None
+        mask = (1 << p) - 1
+        sign = (-1) ** _count_occupied_orbitals(state & mask)
+        return state | (1 << p), sign
+
+    for i, bra in enumerate(basis):
+        for j, ket in enumerate(basis):
+            val = 0.0
+            for p in range(n_spin):
+                for q in range(n_spin):
+                    res = apply_annihilate(ket, q)
+                    if res is None:
+                        continue
+                    state1, sign1 = res
+                    res = apply_create(state1, p)
+                    if res is None:
+                        continue
+                    state2, sign2 = res
+                    if state2 == bra:
+                        val += h1_spin[p, q] * sign1 * sign2
+
+            for p in range(n_spin):
+                for q in range(n_spin):
+                    for r in range(n_spin):
+                        for s in range(n_spin):
+                            res = apply_annihilate(ket, r)
+                            if res is None:
+                                continue
+                            state1, sign1 = res
+                            res = apply_annihilate(state1, s)
+                            if res is None:
+                                continue
+                            state2, sign2 = res
+                            res = apply_create(state2, q)
+                            if res is None:
+                                continue
+                            state3, sign3 = res
+                            res = apply_create(state3, p)
+                            if res is None:
+                                continue
+                            state4, sign4 = res
+                            if state4 == bra:
+                                val += (
+                                    0.5
+                                    * eri_spin[p, q, r, s]
+                                    * sign1
+                                    * sign2
+                                    * sign3
+                                    * sign4
+                                )
+            H[i, j] = val
+
+    return H, basis
+
+
 def get_fermion_hamiltonian(mf: Any, active_space: dict[str, int] | None = None) -> Any:
     """Construct a FermionOperator from PySCF molecular-orbital integrals.
 
