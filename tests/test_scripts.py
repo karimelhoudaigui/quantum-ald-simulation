@@ -21,11 +21,21 @@ def test_scripts_importable() -> None:
     validate_h2 = load_script(project / "scripts" / "validate_h2_pipeline.py")
     run_h2_curve = load_script(project / "scripts" / "run_h2_energy_curve.py")
     validate_lih = load_script(project / "scripts" / "validate_lih_pipeline.py")
+    validate_jw = load_script(project / "scripts" / "validate_jw_h2.py")
+    run_qiskit_vqe = load_script(project / "scripts" / "run_h2_qiskit_vqe.py")
+    run_noisy_vqe = load_script(project / "scripts" / "run_h2_noisy_vqe.py")
+    prepare_ald_models = load_script(project / "scripts" / "prepare_ald_proxy_models.py")
+    reproduce = load_script(project / "scripts" / "reproduce_scientific_results.py")
     assert hasattr(validate, "main")
     assert hasattr(run_h2, "main")
     assert hasattr(validate_h2, "main")
     assert hasattr(run_h2_curve, "main")
     assert hasattr(validate_lih, "main")
+    assert hasattr(validate_jw, "main")
+    assert hasattr(run_qiskit_vqe, "main")
+    assert hasattr(run_noisy_vqe, "main")
+    assert hasattr(prepare_ald_models, "main")
+    assert hasattr(reproduce, "main")
 
 
 def test_run_h2_vqe_smoke() -> None:

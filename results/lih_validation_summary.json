@@ -1,0 +1,32 @@
+{
+  "molecule": "lih",
+  "geometry": "data/geometries/lih.xyz",
+  "basis": "sto-3g",
+  "n_electrons": 4,
+  "n_spatial_orbitals": 6,
+  "n_spin_orbitals": 12,
+  "full_fixed_particle_sector_dimension": 495,
+  "nuclear_repulsion_hartree": 0.9680070931463416,
+  "hf_total_hartree": -7.860313085506852,
+  "fci_status": "ok",
+  "fci_total_hartree": -7.881458734731662,
+  "local_full_space": {
+    "status": "skipped",
+    "reason": "fixed-particle sector dimension 495 exceeds dense limit 100"
+  },
+  "casci_active_space": {
+    "active_space": {
+      "num_electrons": 2,
+      "num_spatial_orbitals": 2
+    },
+    "basis_size": 6,
+    "core_energy_shift_hartree": -6.812098066992091,
+    "pyscf_casci_total_hartree": -7.860597548129602,
+    "local_active_electronic_hartree": -1.048499481137512,
+    "local_casci_total_hartree": -7.860597548129602,
+    "local_minus_pyscf_casci_hartree": 0.0,
+    "note": "CASCI(2,2) with the PySCF effective one-electron Hamiltonian and core energy shift. This validates the reduced active-space model against PySCF CASCI, not against full-space FCI."
+  },
+  "validated_reduced_active_space": true,
+  "validated_total_energy": true
+}

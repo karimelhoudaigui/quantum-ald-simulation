@@ -4,6 +4,8 @@
   <img src="https://img.shields.io/badge/Quantum%20Chemistry-ALD-blueviolet?style=for-the-badge" />
   <img src="https://img.shields.io/badge/VQE-Hybrid%20Workflow-6A0DAD?style=for-the-badge" />
   <img src="https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/github/actions/workflow/status/karimelhoudaigui/quantum-ald-simulation/tests.yml?branch=main&style=for-the-badge&label=tests" />
+  <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" />
 </p>
 
 This repository implements a reproducible scientific workflow for **hybrid quantum-classical simulation of Atomic Layer Deposition (ALD) reaction models**, including molecular preprocessing, active-space reduction, Hamiltonian mapping, VQE prototyping, noise modeling, error mitigation and visualization.
@@ -105,6 +107,27 @@ conda activate quantum-ald
 python -m pip install -e .
 ```
 
+## Optional Qiskit / OpenFermion setup
+
+The validated fallback pipeline does not require Qiskit or OpenFermion. To run
+the optional Jordan-Wigner/OpenFermion checks and the noiseless Qiskit VQE
+workflow, install the quantum extra:
+
+```bash
+python -m pip install -e ".[quantum]"
+```
+
+If extras resolution is fragile in your environment, install the packages
+directly:
+
+```bash
+python -m pip install qiskit qiskit-aer openfermion
+```
+
+On Python 3.9, recent Qiskit versions may emit deprecation warnings because
+future Qiskit releases will drop Python 3.9 support. The current workflow uses
+Qiskit for circuits, Pauli operators and noiseless statevector evaluation only.
+
 ## Usage
 
 Run classical preprocessing:
@@ -150,6 +173,43 @@ Prepare a conservative LiH validation report:
 python scripts/validate_lih_pipeline.py
 ```
 
+Validate the H2 Jordan-Wigner mapping:
+
+```bash
+python scripts/validate_jw_h2.py
+```
+
+Run the optional noiseless Qiskit VQE backend:
+
+```bash
+python scripts/run_h2_qiskit_vqe.py
+```
+
+Run the H2 noisy VQE and mitigation workflow:
+
+```bash
+python scripts/run_h2_noisy_vqe.py
+```
+
+Generate the staged ALD-inspired proxy model catalog:
+
+```bash
+python scripts/prepare_ald_proxy_models.py --check-load
+```
+
+Reproduce the scientific validation artifacts:
+
+```bash
+python scripts/reproduce_scientific_results.py
+```
+
+Use strict mode in a full scientific environment to fail on skipped optional
+workflows:
+
+```bash
+python scripts/reproduce_scientific_results.py --strict
+```
+
 Note: the project provides a pure-Python fallback VQE (`FallbackVQESolver`) that
 is used when Qiskit/OpenFermion are not installed. This fallback builds a small
 many-body Hamiltonian in the occupation-number basis and performs a classical
@@ -179,6 +239,8 @@ Example outputs include:
 - `results/tables/h2_energy_curve.csv`
 - `results/tables/h2_energy_curve.json`
 - `results/figures/h2_energy_curve.png`
+- `results/tables/h2_qiskit_vqe_results.json`
+- `results/figures/h2_qiskit_vqe_convergence.png`
 - `results/figures/energy_profile.png`
 - VQE convergence plots for future experiments.
 
@@ -253,6 +315,82 @@ local active-space Hamiltonian, including the PySCF core energy shift, matches
 PySCF CASCI. The remaining difference between CASCI(2,2) and full FCI comes
 from the active-space truncation.
 
+## Jordan-Wigner validation
+
+The project can explicitly validate the fermion-to-qubit Jordan-Wigner mapping
+on H2:
+
+```bash
+python scripts/validate_jw_h2.py
+```
+
+The validation constructs the H2 fermionic Hamiltonian, maps it to a qubit
+Hamiltonian, restricts the qubit matrix to the physical two-electron sector and
+compares the resulting ground-state total energy with PySCF FCI. OpenFermion is
+used when installed; otherwise the script falls back to a small dense local
+Jordan-Wigner matrix for H2. PySCF is still required because the validation uses
+PySCF HF/FCI references and molecular integrals.
+
+## Optional Qiskit VQE backend
+
+The pure-Python fallback VQE remains the always-available pedagogical backend
+for tiny dense Hamiltonians. A separate optional noiseless Qiskit VQE workflow
+is available for environments with Qiskit and PySCF installed:
+
+```bash
+python scripts/run_h2_qiskit_vqe.py
+```
+
+This workflow uses the local H2 Jordan-Wigner matrix decomposed into Qiskit
+Pauli strings, a chemically motivated two-determinant H2 pair ansatz, SciPy
+Nelder-Mead multi-start optimization and Qiskit statevector energy evaluation.
+OpenFermion is not required for this H2 workflow. The result file separates two
+diagnostics: `below_hf` checks whether the variational result improves on
+Hartree-Fock, while `near_fci` checks whether it is within the configured FCI
+tolerance.
+
+## Noisy VQE and mitigation
+
+The next validation layer applies a deterministic analytic depolarizing profile
+to the optimized H2 VQE energy:
+
+```bash
+python scripts/run_h2_noisy_vqe.py
+```
+
+The workflow writes `results/tables/h2_noisy_vqe_mitigation.json` and
+`results/figures/h2_noisy_vqe_noise_scan.png`. It reports the ideal VQE energy,
+the noisy energy, a zero-noise extrapolated estimate and a one-point CDR-style
+linear correction calibrated on the Hartree-Fock determinant. This is a
+reproducibility scaffold before moving to shot-based Qiskit Aer execution.
+
+## ALD-inspired proxy models
+
+The project now includes a staged catalog of small gas-phase proxy models before
+attempting larger ALD chemistry:
+
+```bash
+python scripts/prepare_ald_proxy_models.py --check-load
+```
+
+The catalog includes water as a hydroxyl proxy, LiH as a heteronuclear
+metal-ligand proxy, and a minimal Al-O-H fragment in
+`data/geometries/aloh_proxy.xyz`. These models are intentionally conservative:
+they are active-space testbeds, not surface-embedded ALD mechanisms.
+
+## Reproducible heavy validation
+
+A manual GitHub Actions workflow, `.github/workflows/scientific-validation.yml`,
+installs `.[dev,chemistry,quantum]` and runs:
+
+```bash
+python scripts/reproduce_scientific_results.py --strict
+```
+
+Locally, non-strict mode records missing optional dependencies as skipped and
+writes `results/scientific_reproduction_summary.json`. Strict mode is intended
+for full environments where PySCF, Qiskit and OpenFermion are installed.
+
 ## Current validated status
 
 - H2/STO-3G Hartree-Fock is validated with PySCF.
@@ -260,9 +398,14 @@ from the active-space truncation.
 - The local many-body Hamiltonian is validated in the fixed-electron-number sector.
 - Local exact diagonalization is validated against FCI to numerical precision.
 - The pure-Python fallback VQE is validated on H2.
-- OpenFermion, Qiskit and Qiskit Nature remain optional dependencies.
+- OpenFermion and Qiskit remain optional dependencies.
 - The fallback VQE is pedagogical and intended for small systems, not scalable calculations.
 - LiH CASCI(2,2) is validated against PySCF CASCI with an explicit core energy shift.
+- H2 Jordan-Wigner mapping is validated against the fixed-particle FCI reference.
+- H2 Qiskit VQE now has a chemically motivated pair ansatz for FCI-level H2 checks.
+- H2 noisy VQE has a deterministic depolarizing model with ZNE and CDR-style correction.
+- A first ALD-inspired proxy catalog exists for controlled active-space studies.
+- This is still a validation scaffold, not yet a realistic ALD surface simulation.
 
 ## Natural roadmap
 
@@ -274,6 +417,7 @@ H2 validated point
 -> noisy VQE
 -> error mitigation
 -> simplified ALD-inspired molecular models
+-> surface-cluster ALD models
 
 ## For scientists & community
 

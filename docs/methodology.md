@@ -11,8 +11,11 @@ single notebook.
 4. **Hamiltonian mapping**: fermionic operators are mapped to qubit operators.
 5. **VQE simulation**: parameterized quantum circuits estimate ground-state
    energies.
-6. **Noise and mitigation**: simplified models allow near-term device studies.
-7. **Visualization**: energy profiles and convergence curves are saved in
+6. **Noise and mitigation**: deterministic depolarizing studies are combined
+   with zero-noise extrapolation and linear CDR-style calibration.
+7. **ALD proxy staging**: small gas-phase fragments define controlled
+   active-space testbeds before surface-cluster calculations.
+8. **Visualization**: energy profiles and convergence curves are saved in
    `results/figures/`.
 
 ## Limitations
@@ -23,3 +26,5 @@ single notebook.
 - VQE examples are intentionally compact to remain runnable on local machines.
 - Realistic ALD chemistry will require surface cluster models, transition-state
   geometries, and larger active-space selection.
+- Current ALD-inspired models are proxy fragments and should not be interpreted
+  as validated ALD reaction mechanisms.

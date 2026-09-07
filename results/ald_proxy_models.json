@@ -1,0 +1,51 @@
+{
+  "purpose": "Controlled ALD-inspired models for staged active-space validation",
+  "status": "CATALOG_READY",
+  "models": [
+    {
+      "name": "surface_hydroxyl_proxy",
+      "role": "Surface hydroxyl / ligand proton-transfer proxy",
+      "geometry_path": "data/geometries/h2o.xyz",
+      "basis": "sto-3g",
+      "charge": 0,
+      "spin": 0,
+      "active_space": {
+        "num_electrons": 2,
+        "num_spatial_orbitals": 2
+      },
+      "validation_target": "CASCI active-space sanity check before bond-stretch scans",
+      "limitations": "Gas-phase water is not a surface cluster; it only tests O-H local chemistry.",
+      "geometry_exists": true
+    },
+    {
+      "name": "metal_hydride_proxy",
+      "role": "Small heteronuclear metal-ligand bond proxy",
+      "geometry_path": "data/geometries/lih.xyz",
+      "basis": "sto-3g",
+      "charge": 0,
+      "spin": 0,
+      "active_space": {
+        "num_electrons": 2,
+        "num_spatial_orbitals": 2
+      },
+      "validation_target": "Reduced CASCI benchmark already validated against PySCF CASCI",
+      "limitations": "LiH is a numerically convenient proxy, not an ALD precursor.",
+      "geometry_exists": true
+    },
+    {
+      "name": "aluminum_hydroxide_proxy",
+      "role": "Minimal Al-O-H fragment for ALD-inspired precursor/surface contact",
+      "geometry_path": "data/geometries/aloh_proxy.xyz",
+      "basis": "sto-3g",
+      "charge": 0,
+      "spin": 0,
+      "active_space": {
+        "num_electrons": 2,
+        "num_spatial_orbitals": 2
+      },
+      "validation_target": "HF/CASCI feasibility check followed by active-space refinement",
+      "limitations": "No surface embedding, ligands, transition state or periodic boundary condition.",
+      "geometry_exists": true
+    }
+  ]
+}

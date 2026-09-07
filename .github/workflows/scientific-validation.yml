@@ -1,0 +1,36 @@
+name: Scientific Validation
+
+on:
+  workflow_dispatch:
+
+jobs:
+  reproduce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install scientific dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev,chemistry,quantum]"
+
+      - name: Reproduce scientific results
+        run: python scripts/reproduce_scientific_results.py --strict
+
+      - name: Upload validation artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: scientific-validation-results
+          path: |
+            results/*.json
+            results/tables/*.json
+            results/tables/*.csv
+            results/figures/*.png

@@ -16,6 +16,15 @@ def diag_eigenvalues(H: np.ndarray) -> np.ndarray:
     return np.sort(np.real(evals))
 
 
+def get_openfermion_sparse_operator(openfermion_module):
+    getter = getattr(openfermion_module, "get_sparse_operator", None)
+    if getter is None:
+        getter = getattr(openfermion_module.utils, "get_sparse_operator", None)
+    if getter is None:
+        pytest.skip("OpenFermion sparse-operator helper is unavailable")
+    return getter
+
+
 def test_manybody_diagonalization_matches_fci():
     """Compare local fixed-N diagonalization with PySCF FCI total energy."""
     pytest.importorskip("pyscf")
@@ -65,7 +74,7 @@ def test_openfermion_consistency_if_available():
 
     H_local, basis = build_many_body_hamiltonian(mf, active_space)
     ferm_op = get_fermion_hamiltonian(mf, active_space)
-    sparse = of.utils.get_sparse_operator(  # type: ignore[attr-defined]
+    sparse = get_openfermion_sparse_operator(of)(
         ferm_op,
         n_qubits=2 * active_space["num_spatial_orbitals"],
     )
@@ -99,7 +108,7 @@ def test_jordan_wigner_spectrum_if_available():
 
     q_op = map_to_qubit_hamiltonian(mf, active_space, mapping="jordan-wigner")
 
-    sparse_q = of.utils.get_sparse_operator(  # type: ignore[attr-defined]
+    sparse_q = get_openfermion_sparse_operator(of)(
         q_op,
         n_qubits=2 * active_space["num_spatial_orbitals"],
     )

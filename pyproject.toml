@@ -31,16 +31,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-chemistry = ["pyscf>=2.1.0", "openfermion>=1.4.0", "openfermion-pyscf>=0.5"]
+dev = ["pytest>=7", "pytest-cov", "black", "flake8", "mypy"]
+chemistry = ["pyscf>=2.1", "scipy>=1.9"]
+plot = ["matplotlib>=3.5", "pandas>=1.5"]
 quantum = [
-  "qiskit>=0.42.0",
-  "qiskit-nature>=0.6.0",
-  "qiskit-aer>=0.12.0",
-  "qiskit-algorithms>=0.2.0",
-  "qiskit-ibm-runtime>=0.13.0",
+  "openfermion>=1.5",
+  "qiskit>=1.0",
+  "qiskit-aer>=0.13",
+  "qiskit-algorithms>=0.3",
 ]
-notebooks = ["jupyter>=1.0.0", "ipython>=8.0.0"]
-dev = ["pytest>=7.0.0", "pytest-cov>=3.0.0", "black>=22.0.0", "flake8>=4.0.0", "mypy>=0.950"]
+notebooks = ["jupyter", "ipykernel"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -24,12 +24,35 @@ class ZNE:
 
 
 class CDR:
-    """Minimal Clifford-data-regression-style linear correction placeholder."""
+    """Small linear calibration model inspired by Clifford data regression."""
 
     def __init__(self, num_samples: int = 100):
         self.num_samples = num_samples
+        self.slope = 1.0
+        self.intercept = 0.0
+
+    def fit(self, noisy_values: Sequence[float], ideal_values: Sequence[float]) -> "CDR":
+        """Fit a linear map from noisy to ideal expectation values."""
+        noisy = np.asarray(list(noisy_values), dtype=float)
+        ideal = np.asarray(list(ideal_values), dtype=float)
+        if noisy.shape != ideal.shape:
+            raise ValueError("noisy_values and ideal_values must have the same shape")
+        if noisy.size == 0:
+            raise ValueError("at least one calibration pair is required")
+
+        if noisy.size == 1:
+            self.slope = 1.0
+            self.intercept = float(ideal[0] - noisy[0])
+            return self
+
+        self.slope, self.intercept = [float(x) for x in np.polyfit(noisy, ideal, deg=1)]
+        return self
+
+    def correct(self, noisy_result: float) -> float:
+        """Apply the fitted linear correction."""
+        return float(self.slope * noisy_result + self.intercept)
 
     def execute(self, noisy_result: float, ideal_result: float) -> float:
-        if noisy_result == 0:
-            return float(ideal_result)
-        return float(noisy_result * (ideal_result / noisy_result))
+        """Backward-compatible one-point calibration helper."""
+        self.fit([noisy_result], [ideal_result])
+        return self.correct(noisy_result)
