@@ -14,6 +14,7 @@ import { useMemo, useRef } from "react";
 
 import { ELEMENT_OPTIONS, MOLECULE_PRESETS } from "../../config/chemistry";
 import { useChemistryExperiment } from "../../hooks/useChemistryExperiment";
+import { isChemistryBackendConfigured } from "../../lib/chemistryApi";
 import { parseXyz, serializeXyz } from "../../lib/chemistryXyz";
 import {
   useChemistryStore,
@@ -267,7 +268,12 @@ export function MoleculeConfigurator() {
           <button
             type="button"
             onClick={runExperiment}
-            disabled={isActive || immediateErrors.length > 0}
+            disabled={!isChemistryBackendConfigured || isActive || immediateErrors.length > 0}
+            title={
+              isChemistryBackendConfigured
+                ? undefined
+                : "A public chemistry API is not configured for this static deployment"
+            }
             className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-sm font-semibold text-background transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background disabled:cursor-not-allowed disabled:opacity-45"
           >
             {isActive ? <Loader2 className="animate-spin" size={16} /> : <Play size={16} />}

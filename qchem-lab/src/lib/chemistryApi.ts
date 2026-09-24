@@ -12,6 +12,9 @@ const CHEMISTRY_API_BASE = (
   .trim()
   .replace(/\/$/, "");
 
+export const isChemistryBackendConfigured =
+  import.meta.env.VITE_STATIC_DEPLOYMENT !== "true" || CHEMISTRY_API_BASE.length > 0;
+
 export class ChemistryApiError extends Error {
   readonly payload: unknown;
 

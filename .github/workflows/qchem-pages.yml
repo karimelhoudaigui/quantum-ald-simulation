@@ -42,6 +42,7 @@ jobs:
         env:
           VITE_BASE_PATH: /quantum-ald-simulation/
           VITE_CHEMISTRY_API_BASE_URL: ${{ vars.QCHEM_API_BASE_URL }}
+          VITE_STATIC_DEPLOYMENT: "true"
         run: npm run build
 
       - uses: actions/configure-pages@v5
