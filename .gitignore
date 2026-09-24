@@ -12,6 +12,11 @@ dist/
 .coverage
 coverage.xml
 htmlcov/
+node_modules/
+*.tsbuildinfo
+.env
+.env.local
+.env.*.local
 
 # Jupyter
 .ipynb_checkpoints/

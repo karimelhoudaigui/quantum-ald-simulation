@@ -1,0 +1,52 @@
+import type { ChemistryComparisonRow, ExperimentResult } from "../types/chemistry";
+
+export const comparisonRow: ChemistryComparisonRow = {
+  configuration_id: "ase_test",
+  status: "completed",
+  selection_mode: "canonical",
+  n_active_electrons: 2,
+  n_active_orbitals: 2,
+  orbital_indices: [0, 1],
+  hf_total_hartree: -1.1167593074,
+  casci_total_hartree: -1.1372838345,
+  vqe_total_hartree: -1.1372838344,
+  fci_total_hartree: -1.1372838345,
+  active_space_error_hartree: 0,
+  solver_error_hartree: 5.7e-11,
+  total_error_hartree: 5.7e-11,
+  num_qubits: 4,
+  num_fermionic_terms: 36,
+  num_pauli_terms: 15,
+  ansatz_parameters: 3,
+  circuit_depth: 21,
+  transpiled_depth: 24,
+  one_qubit_gates: 18,
+  two_qubit_gates: 12,
+  optimizer_evaluations: 22,
+  optimizer_iterations: 8,
+  vqe_runtime_seconds: 0.2,
+  configuration_runtime_seconds: 0.35,
+};
+
+export const completedResult = {
+  schema_version: "1",
+  experiment_id: "exp_0f901ebf2d8ec00872760281",
+  status: "completed",
+  normalized_config: {} as ExperimentResult["normalized_config"],
+  molecule: {},
+  requested_methods: ["hf", "casci", "fci", "vqe"],
+  executed_methods: ["hf", "casci", "fci", "vqe"],
+  results: {
+    global_references: {
+      hartree_fock: { status: "completed", energy_total_hartree: -1.1167593074 },
+      fci_full_space: { status: "completed", energy_total_hartree: -1.1372838345 },
+    },
+    active_spaces: [],
+    summary: {},
+  },
+  comparison_table: [comparisonRow],
+  timings_seconds: { total: 0.8 },
+  warnings: [],
+  errors: [],
+  provenance: {},
+} satisfies ExperimentResult;
