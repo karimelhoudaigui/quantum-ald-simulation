@@ -27,7 +27,7 @@ export function ChemistryPipelineRunner() {
           <p className="text-xs font-semibold uppercase tracking-wide text-foreground/50">Pipeline</p>
           <h2 className="mt-1 text-lg font-semibold sm:text-xl">Molecular Electronic Structure + VQE</h2>
           <p className="mt-1 font-mono text-[11px] text-foreground/40">
-            schema 1 · exact statevector · Jordan-Wigner
+            local CPU · exact statevector · Jordan-Wigner
           </p>
         </div>
         <div className="flex items-center gap-2">

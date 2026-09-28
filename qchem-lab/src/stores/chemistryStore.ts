@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import { CHEMISTRY_STEP_LABELS, MOLECULE_PRESETS } from "../config/chemistry";
+import { ATOMIC_NUMBERS, CHEMISTRY_STEP_LABELS, MOLECULE_PRESETS } from "../config/chemistry";
 import type {
   ActiveSpaceDraft,
   AtomDraft,
@@ -34,7 +34,7 @@ export interface ChemistryState {
   mapping: "jordan-wigner";
   ansatzType: "uccsd";
   reps: number;
-  optimizer: "slsqp";
+  optimizer: "periodic_coordinate";
   maxiter: number;
   executionMode: "exact_statevector";
   job: ChemistryJob | null;
@@ -82,6 +82,11 @@ function defaultActiveSpace(orbitals = 2): ActiveSpaceDraft {
   };
 }
 
+function activeSpacesFromPreset(preset: string): ActiveSpaceDraft[] {
+  if (preset === "h2") return [defaultActiveSpace(2)];
+  return [defaultActiveSpace(2), defaultActiveSpace(3)];
+}
+
 function initialDraft() {
   return {
     selectedPreset: "lih",
@@ -92,12 +97,12 @@ function initialDraft() {
     basis: "sto-3g",
     unit: "angstrom" as CoordinateUnit,
     selectedAtomId: null,
-    activeSpaces: [defaultActiveSpace(2), defaultActiveSpace(3)],
+    activeSpaces: activeSpacesFromPreset("lih"),
     methods: { hf: true, casci: true, fci: true, vqe: true },
     mapping: "jordan-wigner" as const,
     ansatzType: "uccsd" as const,
     reps: 1,
-    optimizer: "slsqp" as const,
+    optimizer: "periodic_coordinate" as const,
     maxiter: 100,
     executionMode: "exact_statevector" as const,
     job: null,
@@ -120,6 +125,7 @@ export const useChemistryStore = create<ChemistryState>((set) => ({
       selectedPreset: preset,
       moleculeName: definition.name,
       atoms: atomsFromPreset(preset),
+      activeSpaces: activeSpacesFromPreset(preset),
       selectedAtomId: null,
       ...clearDraftFeedback(),
     });
@@ -216,6 +222,31 @@ export function validateChemistryDraft(state: ChemistryState): ChemistryValidati
   if (!Number.isInteger(state.spin) || state.spin < 0) {
     errors.push({ code: "invalid_spin", field: "molecule.spin", message: "Spin must be a non-negative integer." });
   }
+  if (state.charge !== 0) {
+    errors.push({
+      code: "unsupported_local_charge",
+      field: "molecule.charge",
+      message: "The local browser RHF engine currently supports neutral molecules only.",
+    });
+  }
+  if (state.spin !== 0) {
+    errors.push({
+      code: "unsupported_local_spin",
+      field: "molecule.spin",
+      message: "The local browser RHF engine currently supports closed-shell singlets only.",
+    });
+  }
+  const electronCount = state.atoms.reduce(
+    (total, atom) => total + (ATOMIC_NUMBERS[atom.symbol as keyof typeof ATOMIC_NUMBERS] ?? 0),
+    0,
+  );
+  if (electronCount > 0 && electronCount % 2 !== 0) {
+    errors.push({
+      code: "unsupported_open_shell",
+      field: "molecule.atoms",
+      message: "The neutral molecule must have an even electron count for local RHF.",
+    });
+  }
   if (!Object.values(state.methods).some(Boolean)) {
     errors.push({ code: "missing_methods", field: "methods", message: "Select at least one method." });
   }
@@ -243,6 +274,31 @@ export function validateChemistryDraft(state: ChemistryState): ChemistryValidati
           code: "invalid_active_space",
           field,
           message: `${activeSpace.n_active_electrons} active electrons cannot fit in ${activeSpace.n_active_orbitals} spatial orbitals.`,
+        });
+      }
+      if (activeSpace.n_active_orbitals > 8) {
+        errors.push({
+          code: "active_space_too_large",
+          field,
+          message: "Local statevector calculations support at most 8 active orbitals.",
+        });
+      }
+      if (
+        electronCount > 0 &&
+        (activeSpace.n_active_electrons > electronCount ||
+          (electronCount - activeSpace.n_active_electrons) % 2 !== 0)
+      ) {
+        errors.push({
+          code: "invalid_active_space",
+          field,
+          message: "Active electrons must be compatible with the molecule's closed-shell electron count.",
+        });
+      }
+      if (activeSpace.n_active_electrons % 2 !== 0) {
+        errors.push({
+          code: "unsupported_active_spin",
+          field,
+          message: "The spin-preserving local UCCSD ansatz requires an even active-electron count.",
         });
       }
       if (activeSpace.selection_mode === "manual") {

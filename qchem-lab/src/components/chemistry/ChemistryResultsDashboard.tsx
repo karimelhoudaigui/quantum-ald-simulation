@@ -11,7 +11,7 @@ export function ChemistryResultsDashboard() {
   const job = useChemistryStore((state) => state.job);
   const result = useChemistryStore((state) => state.result);
   const metrics = useMemo(() => summarize(result?.comparison_table ?? []), [result]);
-  const backendErrors = result?.errors ?? normalizeJobErrors(job?.error);
+  const resultErrors = result?.errors ?? normalizeJobErrors(job?.error);
 
   return (
     <aside className="flex min-h-0 min-w-0 max-w-full flex-col gap-4 overflow-x-hidden overflow-y-auto overscroll-contain border-t border-border bg-muted/30 p-4 sm:p-5 lg:h-[100svh] lg:border-l lg:border-t-0">
@@ -61,8 +61,8 @@ export function ChemistryResultsDashboard() {
       {result?.warnings.length ? (
         <MessageList title="Scientific warnings" icon={<AlertTriangle size={15} />} messages={result.warnings} tone="warning" />
       ) : null}
-      {backendErrors.length ? (
-        <MessageList title="Errors" icon={<CircleX size={15} />} messages={backendErrors} tone="error" />
+      {resultErrors.length ? (
+        <MessageList title="Errors" icon={<CircleX size={15} />} messages={resultErrors} tone="error" />
       ) : null}
 
       <section className="min-w-0 border-t border-border pt-4">

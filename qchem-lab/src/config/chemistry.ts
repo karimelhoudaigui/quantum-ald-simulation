@@ -21,6 +21,12 @@ export const ELEMENT_OPTIONS = [
   "Ar",
 ] as const;
 
+export const ATOMIC_NUMBERS: Record<(typeof ELEMENT_OPTIONS)[number], number> =
+  Object.fromEntries(ELEMENT_OPTIONS.map((symbol, index) => [symbol, index + 1])) as Record<
+    (typeof ELEMENT_OPTIONS)[number],
+    number
+  >;
+
 export const MOLECULE_PRESETS: Record<string, { name: string; atoms: AtomSpec[] }> = {
   h2: {
     name: "H2",

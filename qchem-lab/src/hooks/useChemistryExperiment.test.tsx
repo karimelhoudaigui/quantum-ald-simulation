@@ -1,73 +1,54 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { CHEMISTRY_STEP_LABELS } from "../config/chemistry";
+import { runBrowserChemistryExperiment } from "../lib/browserChemistryEngine";
 import { useChemistryStore } from "../stores/chemistryStore";
 import { completedResult } from "../test/chemistryFixtures";
-import type { ChemistryJob } from "../types/chemistry";
 import { useChemistryExperiment } from "./useChemistryExperiment";
 
-function response(body: unknown, status = 200) {
-  return Promise.resolve(new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } }));
-}
+vi.mock("../lib/browserChemistryEngine", () => ({
+  runBrowserChemistryExperiment: vi.fn(),
+}));
 
-function job(status: ChemistryJob["status"], result = status === "completed" ? completedResult : null): ChemistryJob {
-  return {
-    job_id: "chem_123",
-    status,
-    progress: status === "completed" ? 100 : 45,
-    steps: CHEMISTRY_STEP_LABELS.map(([id, label]) => ({ id, label, status: status === "completed" ? "completed" : "running", message: null })),
-    current_active_space: null,
-    completed_active_spaces: status === "completed" ? 1 : 0,
-    total_active_spaces: 1,
-    result,
-    error: null,
-  };
-}
+const runLocal = vi.mocked(runBrowserChemistryExperiment);
 
 describe("useChemistryExperiment", () => {
-  beforeEach(() => useChemistryStore.getState().reset());
-  afterEach(() => vi.unstubAllGlobals());
+  beforeEach(() => {
+    useChemistryStore.getState().reset();
+    runLocal.mockReset();
+  });
 
-  it("submits, polls running state, then stores the completed result", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockImplementationOnce(() => response({ job_id: "chem_123", status: "queued" }, 202))
-      .mockImplementationOnce(() => response(job("running")))
-      .mockImplementationOnce(() => response(job("completed")));
-    vi.stubGlobal("fetch", fetchMock);
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    const wrapper = ({ children }: { children: ReactNode }) => (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
-    );
-    const { result } = renderHook(() => useChemistryExperiment(), { wrapper });
+  it("runs locally, exposes progress, then stores the completed result", async () => {
+    let finish: ((value: typeof completedResult) => void) | undefined;
+    runLocal.mockImplementation((_config, onProgress) => {
+      onProgress({ step: "scf", progress: 25, message: "Local RHF" });
+      return new Promise((resolve) => {
+        finish = resolve;
+      });
+    });
+    const { result } = renderHook(() => useChemistryExperiment());
 
     act(() => {
       expect(result.current.runExperiment()).toBe(true);
     });
     await waitFor(() => expect(useChemistryStore.getState().job?.status).toBe("running"));
-    await waitFor(
-      () => expect(useChemistryStore.getState().job?.status).toBe("completed"),
-      { timeout: 2500 },
-    );
+    expect(useChemistryStore.getState().job?.progress).toBe(25);
 
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    await act(async () => finish?.(completedResult));
+    await waitFor(() => expect(useChemistryStore.getState().job?.status).toBe("completed"));
     expect(useChemistryStore.getState().result?.experiment_id).toBe(completedResult.experiment_id);
   });
 
-  it("does not invent a result when the backend is unavailable", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
-    const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
-    const wrapper = ({ children }: { children: ReactNode }) => (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
-    );
-    const { result } = renderHook(() => useChemistryExperiment(), { wrapper });
+  it("does not invent a result when the local engine fails", async () => {
+    runLocal.mockRejectedValue(new Error("Local engine unavailable"));
+    const { result } = renderHook(() => useChemistryExperiment());
 
     act(() => void result.current.runExperiment());
-    await waitFor(() => expect(useChemistryStore.getState().networkError).toMatch(/backend unavailable/i));
+    await waitFor(() =>
+      expect(useChemistryStore.getState().networkError).toMatch(/local engine unavailable/i),
+    );
 
+    expect(useChemistryStore.getState().job?.status).toBe("failed");
     expect(useChemistryStore.getState().result).toBeNull();
   });
 });

@@ -33,6 +33,16 @@ describe("chemistry store", () => {
     expect(useChemistryStore.getState().methods.casci).toBe(false);
   });
 
+  it("loads active spaces that fit the selected molecule preset", () => {
+    useChemistryStore.getState().setPreset("h2");
+
+    expect(useChemistryStore.getState().activeSpaces).toHaveLength(1);
+    expect(useChemistryStore.getState().activeSpaces[0]).toMatchObject({
+      n_active_electrons: 2,
+      n_active_orbitals: 2,
+    });
+  });
+
   it("builds the exact schema-version-1 ExperimentConfig in one place", () => {
     const firstActiveSpace = useChemistryStore.getState().activeSpaces[0];
     useChemistryStore.getState().updateActiveSpace(firstActiveSpace.id, {

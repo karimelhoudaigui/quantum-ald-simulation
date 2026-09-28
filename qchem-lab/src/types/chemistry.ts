@@ -51,7 +51,7 @@ export interface AnsatzConfig {
 }
 
 export interface VQESolverConfig {
-  optimizer: "slsqp";
+  optimizer: "periodic_coordinate";
   maxiter: number;
   tolerance: number;
   initialization: "ansatz_default";

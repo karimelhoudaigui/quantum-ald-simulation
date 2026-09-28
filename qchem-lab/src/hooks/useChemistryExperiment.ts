@@ -1,108 +1,130 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
-import { getChemistryExperiment, submitChemistryExperiment } from "../lib/chemistryApi";
+import {
+  runBrowserChemistryExperiment,
+  type BrowserExperimentProgress,
+} from "../lib/browserChemistryEngine";
 import {
   buildExperimentConfig,
   chemistryJobFromSubmission,
   useChemistryStore,
   validateChemistryDraft,
 } from "../stores/chemistryStore";
-import type {
-  ChemistryJob,
-  ChemistryJobStatus,
-  ChemistryValidationError,
-  ExperimentConfig,
-} from "../types/chemistry";
+import type { ChemistryJob, ChemistryJobStatus } from "../types/chemistry";
 
 const ACTIVE_STATUSES: ChemistryJobStatus[] = ["queued", "running"];
 
 export function useChemistryExperiment() {
   const job = useChemistryStore((state) => state.job);
-  const setJob = useChemistryStore((state) => state.setJob);
-  const setResult = useChemistryStore((state) => state.setResult);
-  const setValidationErrors = useChemistryStore((state) => state.setValidationErrors);
-  const setNetworkError = useChemistryStore((state) => state.setNetworkError);
+  const controllerRef = useRef<AbortController | null>(null);
 
-  const submit = useMutation({
-    mutationFn: (config: ExperimentConfig) => submitChemistryExperiment(config),
-    onMutate: () => {
-      setJob(null);
-      setResult(null);
-      setNetworkError(null);
-    },
-    onSuccess: (submission) => setJob(chemistryJobFromSubmission(submission)),
-    onError: (error) => {
-      setNetworkError(
-        error instanceof Error ? error.message : "Chemistry backend unavailable",
-      );
-    },
-  });
-
-  const status = useQuery({
-    queryKey: ["chemistry-experiment", job?.job_id],
-    queryFn: () => getChemistryExperiment(job?.job_id ?? ""),
-    enabled: Boolean(job?.job_id) && ACTIVE_STATUSES.includes(job?.status ?? "completed"),
-    refetchInterval: (query) => {
-      const current = query.state.data;
-      return current && ACTIVE_STATUSES.includes(current.status) ? 1200 : false;
-    },
-    retry: 1,
-  });
-
-  useEffect(() => {
-    if (!status.data || status.data.job_id !== job?.job_id) return;
-    setJob(status.data);
-    if (status.data.result) setResult(status.data.result);
-    if (status.data.status === "invalid_configuration") {
-      setValidationErrors(asValidationErrors(status.data.error));
-    }
-  }, [job?.job_id, setJob, setResult, setValidationErrors, status.data]);
-
-  useEffect(() => {
-    if (!status.error) return;
-    const message =
-      status.error instanceof Error
-        ? status.error.message
-        : "Chemistry backend unavailable";
-    setNetworkError(message);
-    const currentJob = useChemistryStore.getState().job;
-    if (currentJob && ACTIVE_STATUSES.includes(currentJob.status)) {
-      setJob({
-        ...currentJob,
-        status: "failed",
-        error: {
-          code: "chemistry_backend_unavailable",
-          field: "network",
-          message,
-        },
-      });
-    }
-  }, [setJob, setNetworkError, status.error]);
+  useEffect(() => () => controllerRef.current?.abort(), []);
 
   const runExperiment = useCallback(() => {
     const state = useChemistryStore.getState();
+    if (ACTIVE_STATUSES.includes(state.job?.status ?? "completed")) return false;
     const errors = validateChemistryDraft(state);
-    setValidationErrors(errors);
-    setNetworkError(null);
+    state.setValidationErrors(errors);
+    state.setNetworkError(null);
     if (errors.length > 0) return false;
-    submit.mutate(buildExperimentConfig(state));
+
+    controllerRef.current?.abort();
+    const controller = new AbortController();
+    controllerRef.current = controller;
+    const jobId = createJobId();
+    const config = buildExperimentConfig(state);
+    const queued = chemistryJobFromSubmission({ job_id: jobId, status: "queued" });
+    state.setResult(null);
+    state.setJob({ ...queued, total_active_spaces: config.active_spaces.length });
+
+    queueMicrotask(() => {
+      updateJob(jobId, (current) => ({ ...current, status: "running" }));
+      void runBrowserChemistryExperiment(
+        config,
+        (progress) => applyProgress(jobId, progress),
+        controller.signal,
+      )
+        .then((result) => {
+          if (controller.signal.aborted) return;
+          const current = useChemistryStore.getState();
+          if (current.job?.job_id !== jobId) return;
+          current.setResult(result);
+          current.setJob({
+            ...current.job,
+            status: result.status,
+            progress: 100,
+            steps: current.job.steps.map((step) => ({
+              ...step,
+              status: result.status === "failed" ? step.status : "completed",
+            })),
+            current_active_space: null,
+            completed_active_spaces: result.results.active_spaces.filter(
+              (entry) => entry.status === "completed",
+            ).length,
+            result,
+            error: result.errors.length ? result.errors : null,
+          });
+        })
+        .catch((error: unknown) => {
+          if (controller.signal.aborted) return;
+          const message = error instanceof Error ? error.message : String(error);
+          const current = useChemistryStore.getState();
+          if (current.job?.job_id !== jobId) return;
+          current.setNetworkError(message);
+          current.setJob({
+            ...current.job,
+            status: "failed",
+            steps: current.job.steps.map((step) =>
+              step.status === "running" ? { ...step, status: "failed", message } : step,
+            ),
+            error: { code: "local_engine_error", field: "runtime", message },
+          });
+        });
+    });
     return true;
-  }, [setNetworkError, setValidationErrors, submit]);
+  }, []);
 
   return {
     runExperiment,
-    submit,
-    status,
-    isActive: submit.isPending || ACTIVE_STATUSES.includes(job?.status ?? "completed"),
+    isActive: ACTIVE_STATUSES.includes(job?.status ?? "completed"),
   };
 }
 
-function asValidationErrors(error: ChemistryJob["error"]): ChemistryValidationError[] {
-  if (!error) return [];
-  return (Array.isArray(error) ? error : [error]).map(({ code, field, message }) => ({
-    code,
-    field,
-    message,
-  }));
+function applyProgress(jobId: string, progress: BrowserExperimentProgress) {
+  updateJob(jobId, (current) => {
+    const currentIndex = current.steps.findIndex((step) => step.id === progress.step);
+    return {
+      ...current,
+      status: "running",
+      progress: Math.max(current.progress, Math.min(99, progress.progress)),
+      steps: current.steps.map((step, index) => {
+        if (index < currentIndex) return { ...step, status: "completed" };
+        if (index === currentIndex) {
+          return { ...step, status: "running", message: progress.message };
+        }
+        return step;
+      }),
+      current_active_space:
+        progress.currentActiveSpace === undefined
+          ? current.current_active_space
+          : progress.currentActiveSpace,
+      completed_active_spaces:
+        progress.completedActiveSpaces ?? current.completed_active_spaces,
+      total_active_spaces: progress.totalActiveSpaces ?? current.total_active_spaces,
+    };
+  });
+}
+
+function updateJob(jobId: string, transform: (current: ChemistryJob) => ChemistryJob) {
+  const state = useChemistryStore.getState();
+  if (!state.job || state.job.job_id !== jobId) return;
+  state.setJob(transform(state.job));
+}
+
+function createJobId() {
+  const suffix =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID().slice(0, 8)
+      : Math.random().toString(16).slice(2, 10);
+  return `local_job_${suffix}`;
 }

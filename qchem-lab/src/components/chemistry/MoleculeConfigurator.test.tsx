@@ -1,22 +1,16 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { useChemistryStore } from "../../stores/chemistryStore";
 import { MoleculeConfigurator } from "./MoleculeConfigurator";
-
-function wrapper({ children }: { children: ReactNode }) {
-  return <QueryClientProvider client={new QueryClient()}>{children}</QueryClientProvider>;
-}
 
 describe("MoleculeConfigurator", () => {
   beforeEach(() => useChemistryStore.getState().reset());
 
   it("adds and removes an editable atom row", async () => {
     const user = userEvent.setup();
-    render(<MoleculeConfigurator />, { wrapper });
+    render(<MoleculeConfigurator />);
 
     await user.click(screen.getByRole("button", { name: /add atom/i }));
     expect(screen.getByLabelText("Atom 3 element")).toBeInTheDocument();
@@ -29,14 +23,14 @@ describe("MoleculeConfigurator", () => {
   });
 
   it("requires CASCI while VQE is enabled", () => {
-    render(<MoleculeConfigurator />, { wrapper });
+    render(<MoleculeConfigurator />);
 
     expect(screen.getByRole("checkbox", { name: "CASCI" })).toBeDisabled();
     expect(screen.getByText(/CASCI is required/)).toBeInTheDocument();
   });
 
   it("reserves a disabled hardware execution action", () => {
-    render(<MoleculeConfigurator />, { wrapper });
+    render(<MoleculeConfigurator />);
 
     expect(screen.getByRole("button", { name: "RUN HARDWARE" })).toBeDisabled();
   });

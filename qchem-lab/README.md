@@ -1,18 +1,11 @@
 # Q-CHEM Lab
 
-Standalone React interface for the validated `quantum-ald-simulation`
-`ExperimentConfig -> run_experiment() -> ExperimentResult` workflow.
+Standalone React quantum-chemistry console. Molecular integrals and RHF run in
+the visitor's browser through the vendored IQCP WebAssembly engine. AO-to-MO
+transforms, CASCI/FCI, Jordan-Wigner resource mapping and exact-statevector
+UCCSD VQE run in a separate local Web Worker.
 
 ## Local development
-
-Start the scientific API from the repository root:
-
-```bash
-python -m pip install -e ".[service,chemistry,quantum]"
-python scripts/serve_experiment_api.py
-```
-
-Start the interface in another terminal:
 
 ```bash
 cd qchem-lab
@@ -20,10 +13,8 @@ npm install
 npm run dev
 ```
 
-Open `http://127.0.0.1:5173/`. The Vite development server proxies
-`/api/chemistry` to `http://127.0.0.1:8002`. For a separately hosted API, set
-`VITE_CHEMISTRY_API_BASE_URL` to its origin. The frontend never fabricates
-scientific results when the API is unavailable.
+Open `http://127.0.0.1:5173/`. No Python service or API environment variable is
+required.
 
 ## Checks
 
@@ -32,13 +23,20 @@ npm test
 npm run build
 ```
 
-The backend queue is intentionally in memory for this MVP. Restarting the API
-loses existing job identifiers and results.
-
 ## GitHub Pages
 
 The Pages workflow publishes the static interface under
-`/quantum-ald-simulation/`. GitHub Pages does not run the Python chemistry
-service. Set the repository variable `QCHEM_API_BASE_URL` to a public HTTPS
-deployment of `quantum_ald.service.api` to enable experiments on the published
-site.
+`/quantum-ald-simulation/`, including the local Worker and WASM binaries. The
+scientific calculation uses the visitor's CPU and does not submit molecule
+data to a remote compute service.
+
+The vendored IQCP revision, checksums and MIT notice are recorded in
+`public/wasm/README.md` and `public/wasm/IQCP-LICENSE.txt`.
+
+## Scientific scope
+
+The browser RHF path currently accepts neutral, closed-shell singlets. The
+statevector path supports up to 8 active spatial orbitals and a maximum CI
+sector dimension of 1200. Larger full-space FCI requests return a structured
+partial result while their RHF and feasible active-space calculations remain
+available.
