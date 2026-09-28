@@ -38,13 +38,23 @@ class Molecule:
         return f"Molecule(name={self.name}, atoms={self.num_atoms}, electrons={self.num_electrons})"
 
 
-def _build_pyscf_molecule(xyz_string: str, basis: str, charge: int, spin: int) -> Any:
+def _build_pyscf_molecule(
+    xyz_string: str,
+    basis: str,
+    charge: int,
+    spin: int,
+    unit: str = "angstrom",
+) -> Any:
     gto = require_module("pyscf.gto", "chemistry")
+    normalized_unit = unit.strip().lower()
+    if normalized_unit not in {"angstrom", "bohr"}:
+        raise ValueError("unit must be 'angstrom' or 'bohr'")
     mol = gto.Mole()
     mol.atom = xyz_string
     mol.basis = basis
     mol.charge = charge
     mol.spin = spin
+    mol.unit = {"angstrom": "Angstrom", "bohr": "Bohr"}[normalized_unit]
     mol.build()
     return mol
 
@@ -63,13 +73,25 @@ def _read_xyz_atoms(xyz_text: str) -> str:
     return "\n".join(lines)
 
 
-def load_molecule(xyz_file: str | Path, basis: str = "sto-3g", charge: int = 0, spin: int = 0) -> Molecule:
+def load_molecule(
+    xyz_file: str | Path,
+    basis: str = "sto-3g",
+    charge: int = 0,
+    spin: int = 0,
+    unit: str = "angstrom",
+) -> Molecule:
     """Load a molecule from an XYZ file."""
     path = Path(xyz_file)
     if not path.exists():
         raise FileNotFoundError(f"XYZ file not found: {path}")
     xyz_string = _read_xyz_atoms(path.read_text(encoding="utf-8"))
-    mol = _build_pyscf_molecule(xyz_string, basis=basis, charge=charge, spin=spin)
+    mol = _build_pyscf_molecule(
+        xyz_string,
+        basis=basis,
+        charge=charge,
+        spin=spin,
+        unit=unit,
+    )
     return Molecule(mol=mol, name=path.stem)
 
 
@@ -79,10 +101,17 @@ def molecule_from_string(
     charge: int = 0,
     spin: int = 0,
     name: str = "mol",
+    unit: str = "angstrom",
 ) -> Molecule:
     """Create a molecule from an atom-coordinate string or XYZ-formatted string."""
     atoms = _read_xyz_atoms(xyz_string)
-    mol = _build_pyscf_molecule(atoms, basis=basis, charge=charge, spin=spin)
+    mol = _build_pyscf_molecule(
+        atoms,
+        basis=basis,
+        charge=charge,
+        spin=spin,
+        unit=unit,
+    )
     return Molecule(mol=mol, name=name)
 
 

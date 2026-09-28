@@ -1,0 +1,67 @@
+name: Validate Q-CHEM Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "render.yaml"
+      - "pyproject.toml"
+      - "scripts/serve_experiment_api.py"
+      - "src/quantum_ald/**"
+      - "tests/test_service_api.py"
+      - ".github/workflows/qchem-backend.yml"
+  pull_request:
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "render.yaml"
+      - "pyproject.toml"
+      - "scripts/serve_experiment_api.py"
+      - "src/quantum_ald/**"
+      - "tests/test_service_api.py"
+      - ".github/workflows/qchem-backend.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install scientific API dependencies
+        run: python -m pip install ".[dev,chemistry,quantum,service]"
+
+      - name: Test asynchronous chemistry API
+        run: python -m pytest tests/test_service_api.py
+
+      - name: Build production image
+        run: docker build --tag quantum-ald-chemistry-api:ci .
+
+      - name: Smoke-test production image
+        run: |
+          docker run --detach --name qchem-api --publish 10000:10000 \
+            --env QUANTUM_ALD_CORS_ORIGINS=https://karimelhoudaigui.github.io \
+            quantum-ald-chemistry-api:ci
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:10000/api/chemistry/health; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              docker logs qchem-api
+              exit 1
+            fi
+            sleep 2
+          done
+          docker exec qchem-api python -c \
+            "import openfermion, pyscf, qiskit, qiskit_aer, qiskit_nature"

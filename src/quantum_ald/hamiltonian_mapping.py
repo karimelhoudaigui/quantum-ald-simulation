@@ -3,12 +3,18 @@
 from __future__ import annotations
 
 import itertools
-from math import comb
 from typing import Any, List, Tuple
 
 import numpy as np
 
 from ._optional import require_module
+from .active_space import PreparedElectronicProblem
+from .electronic_structure import (
+    ElectronicHamiltonianData,
+    build_spin_orbital_integrals,
+    expand_to_spin_orbitals,
+    extract_electronic_hamiltonian_data,
+)
 
 
 def _count_occupied_orbitals(state: int) -> int:
@@ -56,141 +62,27 @@ def build_many_body_hamiltonian(
     along with the list of occupation bitstrings (integers) that define the
     basis. The function is intended for small active spaces (e.g. H2 CAS(2,2)).
     """
-    # Obtain MO integrals
-    hcore_ao = mf.get_hcore()
-    mo_coeff = mf.mo_coeff
-    # Determine spatial orbitals to include
-    n_spatial = mo_coeff.shape[1]
+    n_spatial = mf.mo_coeff.shape[1]
     if active_space is not None:
         n_spatial = min(active_space.get("num_spatial_orbitals", n_spatial), n_spatial)
-    C = mo_coeff[:, :n_spatial]
+    n_electrons = int(
+        mf.mol.nelectron
+        if active_space is None
+        else active_space.get("num_electrons", mf.mol.nelectron)
+    )
+    data = extract_electronic_hamiltonian_data(
+        mf,
+        orbital_indices=range(n_spatial),
+        n_electrons=n_electrons,
+    )
+    return build_many_body_hamiltonian_from_data(data)
 
-    # Transform one-electron integrals to MO basis (spatial)
-    h1_mo = C.T @ hcore_ao @ C
 
-    # Two-electron AO integrals
-    eri_ao = mf.mol.intor("int2e")
-    # Transform to spatial MO integrals: (p q|r s)
-    # naive transformation (sufficient for small basis sizes)
-    eri_mo = np.einsum("pi,qj,rk,sl,pqrs->ijkl", C, C, C, C, eri_ao, optimize=True)
-
-    # Build spin-orbital one- and two-electron integrals
-    n_spin = 2 * n_spatial
-    h1_spin = np.zeros((n_spin, n_spin))
-    for p in range(n_spatial):
-        for q in range(n_spatial):
-            for sp in (0, 1):
-                for sq in (0, 1):
-                    if sp == sq:
-                        P = 2 * p + sp
-                        Q = 2 * q + sq
-                        h1_spin[P, Q] = h1_mo[p, q]
-
-    # two-electron integrals in spin-orbital basis:
-    # <P Q | R S> = <p q | r s> * delta(sp, sr) * delta(sq, ss)
-    eri_spin = np.zeros((n_spin, n_spin, n_spin, n_spin))
-    for p in range(n_spatial):
-        for q in range(n_spatial):
-            for r in range(n_spatial):
-                for s in range(n_spatial):
-                    # For a_p^† a_q^† a_s a_r, the spatial integral from
-                    # chemist's notation is (p r | q s), not (p q | r s).
-                    val = eri_mo[p, r, q, s]
-                    for sp in (0, 1):
-                        for sq in (0, 1):
-                            for sr in (0, 1):
-                                for ss in (0, 1):
-                                    P = 2 * p + sp
-                                    Q = 2 * q + sq
-                                    R = 2 * r + sr
-                                    S = 2 * s + ss
-                                    if sp == sr and sq == ss:
-                                        eri_spin[P, Q, R, S] = val
-
-    # Active space selection: use lowest-energy spin-orbitals
-    n_electrons = mf.mol.nelectron
-    if active_space is not None:
-        n_electrons = active_space.get("num_electrons", int(n_electrons))
-
-    # Choose spin-orbitals 0..(n_active_spin-1)
-    n_active_spin = 2 * (active_space.get("num_spatial_orbitals") if active_space else n_spatial)
-    n_active_spin = min(n_active_spin, n_spin)
-
-    # Construct the physical fixed-particle-number sector directly.
-    basis = particle_number_basis(n_active_spin, int(n_electrons))
-    expected_dim = comb(n_active_spin, int(n_electrons))
-    if len(basis) != expected_dim:
-        raise RuntimeError("Failed to construct the fixed-particle-number basis")
-
-    dim = len(basis)
-    H = np.zeros((dim, dim))
-
-    # Helper: fermionic sign for annihilation/creation
-    def popcount(x: int) -> int:
-        return bin(x).count("1")
-
-    def apply_annihilate(state: int, q: int):
-        if (state >> q) & 1 == 0:
-            return None
-        mask = (1 << q) - 1
-        sign = (-1) ** popcount(state & mask)
-        return state & ~(1 << q), sign
-
-    def apply_create(state: int, p: int):
-        if (state >> p) & 1 == 1:
-            return None
-        mask = (1 << p) - 1
-        sign = (-1) ** popcount(state & mask)
-        return state | (1 << p), sign
-
-    for i, bra in enumerate(basis):
-        for j, ket in enumerate(basis):
-            val = 0.0
-            # one-body terms
-            for p in range(n_active_spin):
-                for q in range(n_active_spin):
-                    # apply a_p^† a_q to ket and see if equals bra
-                    res = apply_annihilate(ket, q)
-                    if res is None:
-                        continue
-                    state1, s1 = res
-                    res2 = apply_create(state1, p)
-                    if res2 is None:
-                        continue
-                    state2, s2 = res2
-                    if state2 == bra:
-                        val += h1_spin[p, q] * s1 * s2
-
-            # two-body terms:
-            # PySCF ERIs are in chemist's notation (pq|rs). The electronic
-            # Hamiltonian is 1/2 * (pr|qs) a_p^† a_q^† a_s a_r, so the
-            # rightmost annihilation operator a_r acts first on the ket.
-            for p in range(n_active_spin):
-                for q in range(n_active_spin):
-                    for r in range(n_active_spin):
-                        for s in range(n_active_spin):
-                            res = apply_annihilate(ket, r)
-                            if res is None:
-                                continue
-                            state1, s1 = res
-                            res = apply_annihilate(state1, s)
-                            if res is None:
-                                continue
-                            state2, s2 = res
-                            res = apply_create(state2, q)
-                            if res is None:
-                                continue
-                            state3, s3 = res
-                            res = apply_create(state3, p)
-                            if res is None:
-                                continue
-                            state4, s4 = res
-                            if state4 == bra:
-                                val += 0.5 * eri_spin[p, q, r, s] * s1 * s2 * s3 * s4
-
-            H[i, j] = val
-
-    return H, basis
+def build_many_body_hamiltonian_from_data(
+    data: ElectronicHamiltonianData,
+) -> Tuple[np.ndarray, List[int]]:
+    """Build a fixed-particle electronic Hamiltonian from canonical data."""
+    return build_many_body_hamiltonian_from_integrals(data.h1_mo, data.eri_mo, data.n_electrons)
 
 
 def build_many_body_hamiltonian_from_integrals(
@@ -206,28 +98,10 @@ def build_many_body_hamiltonian_from_integrals(
     """
     h1_spatial = np.asarray(h1_spatial)
     eri_spatial = np.asarray(eri_spatial)
-    n_spatial = int(h1_spatial.shape[0])
-    n_spin = 2 * n_spatial
-
-    h1_spin = np.zeros((n_spin, n_spin))
-    for p in range(n_spatial):
-        for q in range(n_spatial):
-            for spin in (0, 1):
-                h1_spin[2 * p + spin, 2 * q + spin] = h1_spatial[p, q]
-
-    eri_spin = np.zeros((n_spin, n_spin, n_spin, n_spin))
-    for p in range(n_spatial):
-        for q in range(n_spatial):
-            for r in range(n_spatial):
-                for s in range(n_spatial):
-                    val = eri_spatial[p, r, q, s]
-                    for spin_p in (0, 1):
-                        for spin_q in (0, 1):
-                            P = 2 * p + spin_p
-                            Q = 2 * q + spin_q
-                            R = 2 * r + spin_p
-                            S = 2 * s + spin_q
-                            eri_spin[P, Q, R, S] = val
+    spin_data = build_spin_orbital_integrals(h1_spatial, eri_spatial)
+    h1_spin = spin_data.h1
+    eri_spin = spin_data.eri
+    n_spin = spin_data.n_spin_orbitals
 
     basis = particle_number_basis(n_spin, int(n_electrons))
     H = np.zeros((len(basis), len(basis)))
@@ -302,46 +176,62 @@ def get_fermion_hamiltonian(mf: Any, active_space: dict[str, int] | None = None)
     The returned Hamiltonian contains the electronic terms only. Add
     ``mf.mol.energy_nuc()`` when comparing with total PySCF energies.
     """
-    openfermion = require_module("openfermion", "chemistry")
-
-    hcore_ao = mf.get_hcore()
-    mo_coeff = mf.mo_coeff
-    n_spatial = mo_coeff.shape[1]
+    n_spatial = mf.mo_coeff.shape[1]
     if active_space is not None:
         n_spatial = min(active_space.get("num_spatial_orbitals", n_spatial), n_spatial)
-    C = mo_coeff[:, :n_spatial]
+    n_electrons = int(
+        mf.mol.nelectron
+        if active_space is None
+        else active_space.get("num_electrons", mf.mol.nelectron)
+    )
+    data = extract_electronic_hamiltonian_data(
+        mf,
+        orbital_indices=range(n_spatial),
+        n_electrons=n_electrons,
+    )
+    return get_fermion_hamiltonian_from_data(data)
 
-    h1_mo = C.T @ hcore_ao @ C
-    eri_ao = mf.mol.intor("int2e")
-    eri_mo = np.einsum("pi,qj,rk,sl,pqrs->ijkl", C, C, C, C, eri_ao, optimize=True)
+
+def get_fermion_hamiltonian_from_data(data: ElectronicHamiltonianData) -> Any:
+    """Construct the electronic FermionOperator from canonical MO data."""
+    openfermion = require_module("openfermion", "chemistry")
+    spin_data = expand_to_spin_orbitals(data)
+    n_spin = spin_data.n_spin_orbitals
 
     hamiltonian = openfermion.FermionOperator()
-    for p in range(n_spatial):
-        for q in range(n_spatial):
-            for spin in (0, 1):
-                P = 2 * p + spin
-                Q = 2 * q + spin
-                hamiltonian += openfermion.FermionOperator(((P, 1), (Q, 0)), h1_mo[p, q])
+    for P in range(n_spin):
+        for Q in range(n_spin):
+            coefficient = spin_data.h1[P, Q]
+            if abs(coefficient) >= 1e-15:
+                hamiltonian += openfermion.FermionOperator(((P, 1), (Q, 0)), coefficient)
 
-    for p in range(n_spatial):
-        for q in range(n_spatial):
-            for r in range(n_spatial):
-                for s in range(n_spatial):
-                    coefficient = 0.5 * eri_mo[p, r, q, s]
+    for P in range(n_spin):
+        for Q in range(n_spin):
+            for R in range(n_spin):
+                for S in range(n_spin):
+                    coefficient = 0.5 * spin_data.eri[P, Q, R, S]
                     if abs(coefficient) < 1e-15:
                         continue
-                    for spin_p in (0, 1):
-                        for spin_q in (0, 1):
-                            P = 2 * p + spin_p
-                            Q = 2 * q + spin_q
-                            R = 2 * r + spin_p
-                            S = 2 * s + spin_q
-                            hamiltonian += openfermion.FermionOperator(
-                                ((P, 1), (Q, 1), (S, 0), (R, 0)),
-                                coefficient,
-                            )
+                    hamiltonian += openfermion.FermionOperator(
+                        ((P, 1), (Q, 1), (S, 0), (R, 0)),
+                        coefficient,
+                    )
 
     return hamiltonian
+
+
+def get_fermion_hamiltonian_from_problem(problem: PreparedElectronicProblem) -> Any:
+    """Build only the operator-valued part of a prepared active problem."""
+    data = ElectronicHamiltonianData(
+        h1_mo=problem.h1,
+        eri_mo=problem.h2,
+        n_electrons=problem.n_active_electrons,
+        n_spatial_orbitals=problem.n_active_orbitals,
+        n_spin_orbitals=problem.n_spin_orbitals,
+        nuclear_repulsion=problem.nuclear_repulsion,
+        orbital_indices=problem.active_orbital_indices,
+    )
+    return get_fermion_hamiltonian_from_data(data)
 
 
 # Conventions used in this module:
@@ -375,16 +265,33 @@ def map_to_qubit_hamiltonian_bk(fermion_hamiltonian: Any) -> Any:
     return transforms.bravyi_kitaev(fermion_hamiltonian)
 
 
-def map_to_qubit_hamiltonian(
-    mf: Any, active_space: dict[str, int], mapping: str = "jordan-wigner"
+def map_fermion_hamiltonian(
+    fermion_hamiltonian: Any,
+    mapping: str = "jordan-wigner",
 ) -> Any:
-    """Build and map a fermionic Hamiltonian to a qubit Hamiltonian."""
-    fermion_hamiltonian = get_fermion_hamiltonian(mf, active_space)
+    """Apply one of the mapping implementations already supported by the project."""
     if mapping == "jordan-wigner":
         return map_to_qubit_hamiltonian_jw(fermion_hamiltonian)
     if mapping == "bravyi-kitaev":
         return map_to_qubit_hamiltonian_bk(fermion_hamiltonian)
     raise ValueError(f"Unknown mapping: {mapping}")
+
+
+def map_to_qubit_hamiltonian(
+    mf: Any, active_space: dict[str, int], mapping: str = "jordan-wigner"
+) -> Any:
+    """Build and map a fermionic Hamiltonian to a qubit Hamiltonian."""
+    fermion_hamiltonian = get_fermion_hamiltonian(mf, active_space)
+    return map_fermion_hamiltonian(fermion_hamiltonian, mapping=mapping)
+
+
+def map_prepared_problem_to_qubit(
+    problem: PreparedElectronicProblem,
+    mapping: str = "jordan-wigner",
+) -> Any:
+    """Map a prepared active problem while keeping its constant separate."""
+    fermion_hamiltonian = get_fermion_hamiltonian_from_problem(problem)
+    return map_fermion_hamiltonian(fermion_hamiltonian, mapping=mapping)
 
 
 def get_qubit_operator_terms(qubit_hamiltonian: Any) -> tuple[np.ndarray, np.ndarray]:

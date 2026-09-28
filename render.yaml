@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: quantum-ald-chemistry-api
+    runtime: docker
+    plan: 1c-2g
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeployTrigger: checksPass
+    healthCheckPath: /api/chemistry/health
+    maxShutdownDelaySeconds: 300
+    numInstances: 1
+    envVars:
+      - key: QUANTUM_ALD_CORS_ORIGINS
+        value: https://karimelhoudaigui.github.io
+      - key: QUANTUM_ALD_MAX_WORKERS
+        value: "1"
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: OPENBLAS_NUM_THREADS
+        value: "1"
+      - key: MKL_NUM_THREADS
+        value: "1"

@@ -7,6 +7,7 @@ from typing import Any
 import numpy as np
 
 from ._optional import require_module
+from .h2_pair_circuit import build_h2_pair_ansatz
 
 
 class VQESolver:
@@ -48,14 +49,11 @@ class VQESolver:
                 reps=2,
             )
         if self.ansatz_type == "uccsd":
-            if self.num_electrons == 0:
-                raise ValueError("num_electrons is required for UCCSD")
-            return library.UCCSD(
-                num_spatial_orbitals=self.num_qubits // 2,
-                num_particles=self.num_electrons,
-                reps=1,
+            raise ValueError(
+                "VQESolver does not construct UCCSD; use prepare_ansatz() with "
+                "Qiskit Nature before passing the circuit to a generic solver"
             )
-        return library.TwoLocal(self.num_qubits, rotation_blocks="ry", entanglement_blocks="cz", reps=1)
+        raise ValueError(f"Unknown ansatz_type: {self.ansatz_type}")
 
     def solve(self, hamiltonian: Any, estimator: Any | None = None) -> tuple[float, np.ndarray]:
         """Run VQE and return the minimum energy and optimal parameters."""
@@ -238,11 +236,13 @@ class QiskitVQESolver:
         self.excitation_orbitals = excitation_orbitals or (2, 3)
         self.history: dict[str, list[float]] = {"iterations": [], "energies": []}
         self.result: Any | None = None
+        self.parameter: Any | None = None
         self.ansatz = self._build_ansatz()
 
     def _build_ansatz(self) -> Any:
         if self.ansatz_type == "h2_pair":
-            return None
+            circuit, self.parameter = build_h2_pair_ansatz()
+            return circuit
         if self.ansatz_type != "twolocal":
             raise ValueError(f"Unknown ansatz_type: {self.ansatz_type}")
         library = require_module("qiskit.circuit.library", "quantum")
@@ -254,32 +254,10 @@ class QiskitVQESolver:
             reps=self.reps,
         )
 
-    def _basis_state(self, orbitals: tuple[int, ...]) -> int:
-        state = 0
-        for orbital in orbitals:
-            if orbital < 0 or orbital >= self.num_qubits:
-                raise ValueError("orbital index is outside the qubit register")
-            state |= 1 << orbital
-        return state
-
-    def _h2_pair_statevector(self, parameters: np.ndarray) -> Any:
-        if self.num_qubits != 4:
-            raise ValueError("h2_pair ansatz is defined for the four-qubit H2 minimal basis")
-
-        statevector_cls = require_module("qiskit.quantum_info", "quantum").Statevector
-        theta = float(np.ravel(parameters)[0])
-        vector = np.zeros(2**self.num_qubits, dtype=complex)
-        vector[self._basis_state(self.occupied_orbitals)] = np.cos(theta)
-        vector[self._basis_state(self.excitation_orbitals)] = np.sin(theta)
-        return statevector_cls(vector)
-
     def _energy(self, parameters: np.ndarray, hamiltonian: Any) -> float:
-        if self.ansatz_type == "h2_pair":
-            state = self._h2_pair_statevector(parameters)
-        else:
-            statevector_cls = require_module("qiskit.quantum_info", "quantum").Statevector
-            circuit = self.ansatz.assign_parameters(parameters, inplace=False)
-            state = statevector_cls.from_instruction(circuit)
+        statevector_cls = require_module("qiskit.quantum_info", "quantum").Statevector
+        circuit = self.ansatz.assign_parameters(parameters, inplace=False)
+        state = statevector_cls.from_instruction(circuit)
         energy = state.expectation_value(hamiltonian)
         return float(np.real(energy))
 

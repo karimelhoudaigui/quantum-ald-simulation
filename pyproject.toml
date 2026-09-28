@@ -7,7 +7,7 @@ name = "quantum-ald-simulation"
 version = "0.1.0"
 description = "Hybrid quantum-classical simulation workflow for Atomic Layer Deposition reactions"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "Karim El Houdaigui" }]
 keywords = ["quantum", "chemistry", "ALD", "VQE", "HPC", "PySCF", "Qiskit"]
@@ -16,7 +16,6 @@ classifiers = [
   "Intended Audience :: Science/Research",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Topic :: Scientific/Engineering :: Chemistry",
@@ -31,26 +30,37 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=7", "pytest-cov", "black", "flake8", "mypy"]
+dev = [
+  "pytest>=7",
+  "pytest-cov",
+  "black",
+  "flake8",
+  "mypy",
+  "fastapi>=0.110,<1",
+  "httpx>=0.27,<1",
+]
 chemistry = ["pyscf>=2.1", "scipy>=1.9"]
 plot = ["matplotlib>=3.5", "pandas>=1.5"]
 quantum = [
+  "numpy>=2,<3",
   "openfermion>=1.5",
-  "qiskit>=1.0",
-  "qiskit-aer>=0.13",
-  "qiskit-algorithms>=0.3",
+  "qiskit>=2.2,<3",
+  "qiskit-aer>=0.17,<0.18",
+  "qiskit-algorithms>=0.4,<0.5",
+  "qiskit-nature>=0.8,<0.9",
 ]
 notebooks = ["jupyter", "ipykernel"]
+service = ["fastapi>=0.110,<1", "uvicorn[standard]>=0.29,<1"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.black]
 line-length = 100
-target-version = ["py39", "py310"]
+target-version = ["py310"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 addopts = "-q"

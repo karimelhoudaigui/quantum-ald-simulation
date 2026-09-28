@@ -10,6 +10,64 @@ import numpy as np
 from ._optional import require_module
 
 
+@dataclass(frozen=True)
+class SyntheticNoiseProfile:
+    """Synthetic hardware-like gate and asymmetric readout error rates."""
+
+    name: str
+    p_1q: float
+    p_2q: float
+    p_readout_01: float
+    p_readout_10: float
+
+    def __post_init__(self) -> None:
+        for value in (self.p_1q, self.p_2q, self.p_readout_01, self.p_readout_10):
+            if not 0.0 <= value <= 1.0:
+                raise ValueError("noise probabilities must lie in [0, 1]")
+
+
+SYNTHETIC_NOISE_PROFILES = {
+    "ZERO": SyntheticNoiseProfile("ZERO", 0.0, 0.0, 0.0, 0.0),
+    "LOW": SyntheticNoiseProfile("LOW", 0.0005, 0.005, 0.01, 0.015),
+    "MEDIUM": SyntheticNoiseProfile("MEDIUM", 0.0015, 0.015, 0.025, 0.035),
+    "HIGH": SyntheticNoiseProfile("HIGH", 0.005, 0.05, 0.05, 0.07),
+}
+
+
+def build_synthetic_noise_model(
+    profile: SyntheticNoiseProfile,
+    include_gate_errors: bool = True,
+    include_readout_error: bool = True,
+) -> Any:
+    """Build an Aer noise model for transpiled sx/x/cx gates and readout."""
+    noise = require_module("qiskit_aer.noise", "quantum")
+    model = noise.NoiseModel()
+    if include_gate_errors and profile.p_1q > 0:
+        model.add_all_qubit_quantum_error(noise.depolarizing_error(profile.p_1q, 1), ["sx", "x"])
+    if include_gate_errors and profile.p_2q > 0:
+        model.add_all_qubit_quantum_error(noise.depolarizing_error(profile.p_2q, 2), ["cx"])
+    if include_readout_error and (profile.p_readout_01 > 0 or profile.p_readout_10 > 0):
+        readout = noise.ReadoutError(
+            [
+                [1.0 - profile.p_readout_01, profile.p_readout_01],
+                [profile.p_readout_10, 1.0 - profile.p_readout_10],
+            ]
+        )
+        model.add_all_qubit_readout_error(readout)
+    return model
+
+
+def build_noisy_aer_backend(
+    profile: SyntheticNoiseProfile,
+    include_gate_errors: bool = True,
+    include_readout_error: bool = True,
+) -> Any:
+    """Return an Aer simulator executing the transpiled hardware-like basis."""
+    aer = require_module("qiskit_aer", "quantum")
+    model = build_synthetic_noise_model(profile, include_gate_errors, include_readout_error)
+    return aer.AerSimulator(noise_model=model, basis_gates=["rz", "sx", "x", "cx"])
+
+
 def simple_noise_model(error_rate: float = 0.01) -> Any:
     """Return a depolarizing Qiskit Aer noise model."""
     noise = require_module("qiskit_aer.noise", "quantum")
