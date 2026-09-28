@@ -1,7 +1,7 @@
 # Q-CHEM Lab
 
 <p align="center">
-  <img src="qchem-lab/public/qchem-logo.png" alt="Q-CHEM Lab logo" width="104" />
+  <img src="docs/assets/qchem-logo-readme.png" alt="Q-CHEM Lab logo" width="104" />
 </p>
 
 <p align="center">
@@ -308,12 +308,12 @@ bounded to a specific molecule, geometry, basis and execution mode.
 <table>
   <tr>
     <td width="50%">
-      <img src="results/figures/h2_energy_curve.png" alt="H2 potential-energy curve comparing HF, FCI, local diagonalization and fallback VQE" />
+      <img src="docs/assets/h2-energy-curve-readme.png" alt="H2 potential-energy curve comparing HF, FCI, local diagonalization and fallback VQE" />
       <br /><sub>H2 potential-energy curve: correlation becomes increasingly important away from equilibrium.</sub>
     </td>
     <td width="50%">
-      <img src="results/figures/lih_vqe_cost_accuracy.png" alt="LiH exact VQE solver error against evaluation count" />
-      <br /><sub>LiH exact VQE: solver error remains below chemical accuracy while active-space cost grows.</sub>
+      <img src="docs/assets/lih-active-space-resources-readme.png" alt="LiH qubits, Pauli terms, UCCSD parameters and two-qubit gates by active space" />
+      <br /><sub>LiH active spaces: improving the model increases qubits, Pauli terms, parameters and two-qubit gates.</sub>
     </td>
   </tr>
 </table>

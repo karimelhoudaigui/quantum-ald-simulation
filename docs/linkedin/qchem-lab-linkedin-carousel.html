@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Q-CHEM Lab - LinkedIn visuals</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        letter-spacing: 0;
+        background: #070a0f;
+        color: #f4f7fa;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 1200px;
+        height: 1500px;
+        margin: 0;
+        overflow: hidden;
+        background: #070a0f;
+      }
+
+      .slide {
+        position: relative;
+        display: none;
+        width: 1200px;
+        height: 1500px;
+        overflow: hidden;
+        padding: 64px 72px 54px;
+        background: #0b1017;
+      }
+
+      .slide.is-active {
+        display: block;
+      }
+
+      .topline {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 72px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+
+      .brand img {
+        width: 66px;
+        height: 66px;
+        object-fit: contain;
+      }
+
+      .brand-name {
+        font-size: 27px;
+        font-weight: 750;
+      }
+
+      .brand-subtitle {
+        margin-top: 3px;
+        color: #8f9aa8;
+        font-size: 17px;
+      }
+
+      .counter {
+        color: #7d8998;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 18px;
+      }
+
+      .eyebrow {
+        margin: 48px 0 14px;
+        color: #43d9c2;
+        font-size: 19px;
+        font-weight: 750;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        max-width: 1030px;
+        margin: 0;
+        font-size: 66px;
+        font-weight: 780;
+        line-height: 1.05;
+        letter-spacing: 0;
+      }
+
+      .lead {
+        max-width: 980px;
+        margin: 22px 0 0;
+        color: #bac3ce;
+        font-size: 26px;
+        line-height: 1.38;
+      }
+
+      .media {
+        width: 1056px;
+        overflow: hidden;
+        border: 1px solid #2b3542;
+        border-radius: 8px;
+        background: #ffffff;
+      }
+
+      .media img {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .platform-media {
+        height: 670px;
+        margin-top: 42px;
+        background: #080c12;
+      }
+
+      .platform-media img {
+        object-fit: cover;
+      }
+
+      .plot-media {
+        height: 700px;
+        margin-top: 40px;
+      }
+
+      .plot-media img {
+        object-fit: contain;
+      }
+
+      .resources-media {
+        height: 778px;
+        margin-top: 35px;
+      }
+
+      .resources-media img {
+        object-fit: contain;
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: 32px;
+        border-top: 1px solid #27313d;
+        border-bottom: 1px solid #27313d;
+      }
+
+      .metric {
+        min-width: 0;
+        padding: 22px 24px 21px;
+        border-right: 1px solid #27313d;
+      }
+
+      .metric:first-child {
+        padding-left: 0;
+      }
+
+      .metric:last-child {
+        border-right: 0;
+      }
+
+      .metric-value {
+        color: #43d9c2;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 27px;
+        font-weight: 750;
+      }
+
+      .metric-label {
+        margin-top: 7px;
+        color: #929dab;
+        font-size: 17px;
+        line-height: 1.25;
+      }
+
+      .footer {
+        position: absolute;
+        right: 72px;
+        bottom: 35px;
+        left: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        color: #768291;
+        font-size: 16px;
+      }
+
+      .footer strong {
+        color: #ff5a6f;
+        font-weight: 700;
+      }
+
+      .slide-2 h1,
+      .slide-3 h1 {
+        font-size: 59px;
+      }
+
+      .slide-2 .eyebrow,
+      .slide-3 .eyebrow {
+        margin-top: 38px;
+      }
+
+      .slide-2 .lead,
+      .slide-3 .lead {
+        font-size: 23px;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="slide slide-1" data-slide="1">
+      <header class="topline">
+        <div class="brand">
+          <img src="../assets/qchem-logo-readme.png" alt="" />
+          <div>
+            <div class="brand-name">Q-CHEM Lab</div>
+            <div class="brand-subtitle">Une brique pour La Maison du Quantique</div>
+          </div>
+        </div>
+        <div class="counter">01 / 03</div>
+      </header>
+      <p class="eyebrow">Plateforme ouverte</p>
+      <h1>La chimie quantique, directement dans le navigateur.</h1>
+      <p class="lead">HF, CASCI, FCI et VQE s'exécutent sur le processeur de l'ordinateur ou du téléphone du visiteur.</p>
+      <div class="media platform-media">
+        <img src="../assets/qchem-lab-desktop.png" alt="Capture de Q-CHEM Lab" />
+      </div>
+      <div class="metrics">
+        <div class="metric"><div class="metric-value">LOCAL CPU</div><div class="metric-label">Pas de serveur de calcul à provisionner</div></div>
+        <div class="metric"><div class="metric-value">WASM</div><div class="metric-label">Calcul scientifique dans des Web Workers</div></div>
+        <div class="metric"><div class="metric-value">OPEN</div><div class="metric-label">Code, conventions et résultats auditables</div></div>
+      </div>
+      <footer class="footer"><span>karimelhoudaigui.github.io/quantum-ald-simulation</span><strong>LA MAISON DU QUANTIQUE</strong></footer>
+    </section>
+
+    <section class="slide slide-2" data-slide="2">
+      <header class="topline">
+        <div class="brand">
+          <img src="../assets/qchem-logo-readme.png" alt="" />
+          <div>
+            <div class="brand-name">Q-CHEM Lab</div>
+            <div class="brand-subtitle">Validation scientifique reproductible</div>
+          </div>
+        </div>
+        <div class="counter">02 / 03</div>
+      </header>
+      <p class="eyebrow">H2 / STO-3G</p>
+      <h1>Valider chaque couche avant de généraliser.</h1>
+      <p class="lead">La courbe d'énergie potentielle compare HF, FCI, diagonalisation locale et VQE sur une même convention d'énergie.</p>
+      <div class="media plot-media">
+        <img src="../assets/h2-energy-curve-readme.png" alt="Courbe d'énergie potentielle H2" />
+      </div>
+      <div class="metrics">
+        <div class="metric"><div class="metric-value">-1.13728383 Ha</div><div class="metric-label">Référence FCI à 0,74 angstrom</div></div>
+        <div class="metric"><div class="metric-value">&lt; 1e-10 Ha</div><div class="metric-label">Erreur solveur du VQE navigateur</div></div>
+        <div class="metric"><div class="metric-value">4 QUBITS</div><div class="metric-label">Jordan-Wigner pour CAS(2,2)</div></div>
+      </div>
+      <footer class="footer"><span>Des résultats bornés, versionnés et reproductibles</span><strong>SCIENCE FIRST</strong></footer>
+    </section>
+
+    <section class="slide slide-3" data-slide="3">
+      <header class="topline">
+        <div class="brand">
+          <img src="../assets/qchem-logo-readme.png" alt="" />
+          <div>
+            <div class="brand-name">Q-CHEM Lab</div>
+            <div class="brand-subtitle">Accuracy, resources & hardware path</div>
+          </div>
+        </div>
+        <div class="counter">03 / 03</div>
+      </header>
+      <p class="eyebrow">LiH / espaces actifs</p>
+      <h1>Rendre visible le coût de chaque choix scientifique.</h1>
+      <p class="lead">Plus d'orbitales améliorent le modèle, mais augmentent rapidement les ressources quantiques.</p>
+      <div class="media resources-media">
+        <img src="../assets/lih-active-space-resources-readme.png" alt="Ressources quantiques LiH par espace actif" />
+      </div>
+      <div class="metrics">
+        <div class="metric"><div class="metric-value">4 -> 8</div><div class="metric-label">Qubits de CAS(2,2) à CAS(2,4)</div></div>
+        <div class="metric"><div class="metric-value">27 -> 105</div><div class="metric-label">Termes de Pauli</div></div>
+        <div class="metric"><div class="metric-value">64 -> 688</div><div class="metric-label">Portes à deux qubits</div></div>
+      </div>
+      <footer class="footer"><span>Prochaine étape : bruit, mitigation, puis connexion QPU</span><strong>BUILD THE BRIDGE</strong></footer>
+    </section>
+
+    <script>
+      const requested = new URLSearchParams(location.search).get("slide") || "1";
+      document.querySelector(`[data-slide="${requested}"]`)?.classList.add("is-active");
+    </script>
+  </body>
+</html>
